@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 const open = async (page: Page) => {
   await page.goto("/design/editor");
   await page.locator(".cn-prose").waitFor();
-  await page.evaluate(() => (window as any).__editor.commands.setContent({ type: "doc", content: [{ type: "paragraph" }] }));
-  await page.locator(".cn-prose").click();
+  await page.evaluate(() => (window as any).__editor.commands.setContent({ type: "doc", content: [{ type: "title", content: [{ type: "text", text: "T" }] }, { type: "byline", attrs: { asof: "2026-11-12", authorId: "u-test", authorName: "Test Author" } }, { type: "paragraph" }] }));
+  await page.locator(".cn-prose > p:last-child, .cn-prose > :last-child").last().click();
 };
 const ed = (page: Page) => page.locator(".cn-prose");
 
@@ -14,7 +14,7 @@ test("slash menu inserts a heading, filtered by query", async ({ page }) => {
   await expect(page.getByRole("listbox", { name: "Insert block" })).toBeVisible();
   await page.keyboard.press("Enter");
   await page.keyboard.type("Title here");
-  await expect(ed(page).locator("h1")).toHaveText("Title here");
+  await expect(ed(page).locator("h1:not([data-title])")).toHaveText("Title here");
 });
 
 test("markdown shortcuts: lists, task list, quote, divider", async ({ page }) => {
@@ -84,7 +84,7 @@ test("links: unsafe hrefs are rejected, safe ones kept", async ({ page }) => {
   await open(page);
   const r = await page.evaluate(() => {
     const e = (window as any).__editor;
-    e.commands.setContent('<p><a href="javascript:alert(1)">bad</a> <a href="https://example.com">good</a> <a href="#plan">anchor</a></p>');
+    e.chain().focus("end").insertContent('<p><a href="javascript:alert(1)">bad</a> <a href="https://example.com">good</a> <a href="#plan">anchor</a></p>').run();
     return [...document.querySelectorAll(".cn-prose a")].map((a) => a.getAttribute("href"));
   });
   expect(r).not.toContain("javascript:alert(1)");
@@ -101,7 +101,7 @@ test("pasted HTML is sanitized by the schema (no script, no iframe, no external 
 
 test("pasted markdown becomes structure", async ({ page }) => {
   await open(page);
-  await page.evaluate(() => (window as any).__editor.commands.insertContent("## Heading\n\n- a\n- b\n\n| x | y |\n|---|---|\n| 1 | 2 |", { contentType: "markdown" }));
+  await page.evaluate(() => { const e = (window as any).__editor; e.chain().focus().insertContent(e.markdown.parse("## Heading\n\n- a\n- b\n\n| x | y |\n|---|---|\n| 1 | 2 |").content).run(); });
   await expect(ed(page).locator("h2")).toHaveText("Heading");
   await expect(ed(page).locator("ul li")).toHaveCount(2);
   await expect(ed(page).locator("table")).toHaveCount(1);

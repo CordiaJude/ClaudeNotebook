@@ -13,6 +13,7 @@ import { common, createLowlight } from "lowlight";
 import { CodeBlockView } from "@/components/editor/CodeBlockView";
 import { isCellColor, isSafeHref } from "./constants";
 import { slashExtension, type SlashState } from "./slash";
+import { Byline, DateChip, Doc, DropdownChip, Embed, MentionChip, Pending, Title } from "./nodes";
 
 const lowlight = createLowlight(common);
 
@@ -40,11 +41,12 @@ const BlobImage = Image.extend({
   },
 });
 
-export const BLOCK_ID_TYPES = ["heading", "paragraph", "bulletList", "orderedList", "taskList", "listItem", "taskItem", "blockquote", "codeBlock", "horizontalRule", "table", "image"];
+export const BLOCK_ID_TYPES = ["title", "byline", "pending", "embed", "heading", "paragraph", "bulletList", "orderedList", "taskList", "listItem", "taskItem", "blockquote", "codeBlock", "horizontalRule", "table", "image"];
 
-export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void; placeholder?: string; history?: boolean }): AnyExtension[] {
+export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void; history?: boolean; getAuthor?: () => { id: string; name: string } | null }): AnyExtension[] {
   return [
     StarterKit.configure({
+      document: false,
       undoRedo: opts.history ? {} : false, // collaborative mode: Yjs UndoManager handles history
       codeBlock: false,
       heading: { levels: [1, 2, 3] },
@@ -55,6 +57,14 @@ export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void;
         HTMLAttributes: { rel: "noopener noreferrer nofollow" },
       },
     }),
+    Doc,
+    Title,
+    Byline.configure({ getAuthor: opts.getAuthor ?? (() => null) }),
+    MentionChip,
+    DateChip,
+    DropdownChip,
+    Pending,
+    Embed,
     CodeBlockLowlight.extend({
       addNodeView() {
         return ReactNodeViewRenderer(CodeBlockView);
@@ -69,7 +79,7 @@ export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void;
     HeaderWithBg,
     CellWithBg,
     UniqueID.configure({ types: BLOCK_ID_TYPES, attributeName: "id" }),
-    Placeholder.configure({ placeholder: opts.placeholder ?? "Type / for blocks" }),
+    Placeholder.configure({ placeholder: ({ node }) => (node.type.name === "title" ? "Untitled" : "Type / for blocks") }),
     Markdown,
     slashExtension(opts.onSlash),
     Extension.create({

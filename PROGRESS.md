@@ -1,5 +1,28 @@
 # PROGRESS
 
+## Phase 3 — Tabs, chips, byline, pending: CODE DONE, LIVE PATHS UNTESTED
+
+**Built**
+- Doc schema is now `title byline block+` (spec §7): one title, byline right after it, never deletable; select-all+delete re-fills the structure. Enter in the title jumps to the body. Notebook title = first tab's title node.
+- Byline = as-of date chip · author mention chip, nothing else (F05).
+- Chips (inline atoms): mention (person / tab / notebook), date, dropdown (`enumId + index`); `embed` block (caption; widget rendering is Phase 7); `pending(intent)` block (dashed skeleton + intent, human-deletable). All inserted via `/` pickers. Chips work inside table cells (F23 dropdown part).
+- Enums (F31): created from the dropdown picker, edited in a "Lists" dialog. Removing an option hides it (tombstone) so existing chips keep index + show "(removed)".
+- Tabs (F01-F03): `lib/tabs.ts` pure rules (fractional-indexing string keys), server actions (`tab-actions.ts`) re-validate role + rules. Add, rename, reorder (drag + Move up/down menu), nest / un-nest (max one level), delete (refused for last tab; sub-tabs promoted in place). `?tab=<id>` selects the open tab; each tab = its own Liveblocks room.
+- Tab links (F04) = tab/notebook mention chips; clicking opens the tab/notebook.
+- `lib/editor/markdown.ts` `insertMarkdown()`: markdown must be parsed to body blocks, never inserted as a `doc` (schema requires title+byline). Phase 4 agent reuses it. This also fixed markdown paste.
+
+**Verified (automated)**: 10 unit tests for tab rules incl. a 300-run property test (keys unique per level, no orphans, never empty, depth <= 1); 29 Playwright tests (all Phase 2 + new: byline, structure invariants, mention/tab/notebook/date chips, dropdown chip in a cell with enumId+index stored, removed-option display, pending skeleton + human delete, embed caption, block ids).
+
+**NOT verified (needs live Supabase/Liveblocks)**: tab add/rename/move/nest/delete against the real DB (server actions are thin wrappers over the tested rules), enum create/edit persistence, members list for @-mentions, tab switching with live rooms.
+
+**Decisions / deviations**
+- BREAKING: existing Phase 2 test notebooks have an H1-first doc and will not match the new schema. Delete them and create new ones.
+- Nesting depth capped at 1 (top level + sub-tabs) to keep delete/promote rules unambiguous.
+- Deleting a tab does NOT delete its Liveblocks room (keeps history recoverable). Orphan rooms are cheap.
+- Enums refresh on page load only (no realtime); a collaborator's new list appears after reload.
+- F23 "comment on a cell" is Phase 5. Dropdown-in-cell is done.
+- Pending blocks are not user-insertable from the slash menu (agent-only by design); tested via editor commands.
+
 ## Phase 2 — Editor core: CODE DONE, LIVE PATHS UNTESTED
 
 **Built**

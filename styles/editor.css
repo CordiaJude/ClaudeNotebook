@@ -13,8 +13,14 @@
 .cn-prose { outline: none; font-family: var(--cn-doc-body-font); font-size: 16px; line-height: 1.6; min-height: 50vh; }
 .cn-prose > * + * { margin-top: 12px; }
 .cn-prose p { margin: 12px 0; }
-.cn-prose h1 { font-family: var(--cn-font-serif); font-size: 40px; line-height: 1.15; font-weight: 340; margin: 0 0 16px; }
-.cn-prose h1 ~ h1 { font-size: 32px; line-height: 1.2; margin-top: 32px; }
+.cn-prose h1 { font-family: var(--cn-font-serif); font-size: 32px; line-height: 1.2; font-weight: 340; margin: 32px 0 8px; }
+.cn-prose h1[data-title] { font-size: 40px; line-height: 1.15; margin: 0 0 12px; }
+.cn-byline { display: flex; align-items: center; gap: 6px; margin: 0 0 24px; color: var(--cn-text-muted); font-size: 14px; }
+.cn-embed { margin: 16px 0; border: 1px solid var(--cn-border); border-radius: var(--cn-radius-sm); background: var(--cn-surface); padding: 16px; display: grid; gap: 8px; }
+.cn-embed-body { min-height: 96px; display: grid; place-items: center; border: 1px dashed var(--cn-border-strong); border-radius: 8px; }
+.cn-embed-caption { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--cn-text-muted); outline: none; width: 100%; }
+.cn-prose [data-node-view-wrapper] .cn-chip { user-select: none; cursor: default; }
+.cn-prose button.cn-chip { cursor: pointer; }
 .cn-prose h2 { font-family: var(--cn-font-serif); font-size: 24px; line-height: 1.25; font-weight: 360; margin: 32px 0 8px; }
 .cn-prose h3 { font-size: 18px; line-height: 1.35; font-weight: 600; margin: 24px 0 4px; }
 .cn-prose ul, .cn-prose ol { padding-left: 24px; margin: 12px 0; }

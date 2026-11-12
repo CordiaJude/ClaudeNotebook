@@ -4,7 +4,19 @@ export type TemplateKey = "blank" | "memo" | "plan" | "brief" | "report" | "meet
 
 const p = (text = ""): JSONContent => (text ? { type: "paragraph", content: [{ type: "text", text }] } : { type: "paragraph" });
 const h = (level: number, text: string): JSONContent => ({ type: "heading", attrs: { level }, content: [{ type: "text", text }] });
-const doc = (title: string, ...rest: JSONContent[]): JSONContent => ({ type: "doc", content: [h(1, title), ...rest] });
+const titleNode = (t: string): JSONContent => (t ? { type: "title", content: [{ type: "text", text: t }] } : { type: "title" });
+const doc = (title: string, ...rest: JSONContent[]): JSONContent => ({ type: "doc", content: [titleNode(title === "Untitled" ? "" : title), { type: "byline", attrs: {} }, ...rest] });
+
+export type Author = { id: string; name: string };
+/** Template content with the byline filled in (as-of date + author mention chip). */
+export function seedContent(key: string | undefined, author: Author, date = new Date().toISOString().slice(0, 10)): JSONContent {
+  const content = (templateByKey(key).content.content ?? []).map((n) => (n.type === "byline" ? { type: "byline", attrs: { asof: date, authorId: author.id, authorName: author.name } } : n));
+  return { type: "doc", content };
+}
+/** A new empty tab: title = tab name, byline, one empty paragraph. */
+export function blankTabContent(name: string, author: Author, date = new Date().toISOString().slice(0, 10)): JSONContent {
+  return { type: "doc", content: [titleNode(name), { type: "byline", attrs: { asof: date, authorId: author.id, authorName: author.name } }, { type: "paragraph" }] };
+}
 
 export const TEMPLATES: { key: TemplateKey; name: string; blurb: string; content: JSONContent }[] = [
   { key: "blank", name: "Blank", blurb: "Start from nothing.", content: doc("Untitled", p()) },

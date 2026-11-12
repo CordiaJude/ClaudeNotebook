@@ -82,3 +82,21 @@ export function ToastButton({ label, message }: { label: string; message: string
     </Toast.Provider>
   );
 }
+
+export function ControlledDialog({ open, onOpenChange, title, description, children }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: string; children: ReactNode }) {
+  return (
+    <D.Root open={open} onOpenChange={onOpenChange}>
+      <D.Portal>
+        <D.Overlay className="cn-overlay" />
+        <D.Content className="cn-dialog">
+          <D.Title className="cn-h2" style={{ margin: 0 }}>{title}</D.Title>
+          {description ? <D.Description className="cn-caption">{description}</D.Description> : <D.Description className="sr-only">{title}</D.Description>}
+          <div style={{ marginTop: 16 }}>{children}</div>
+          <D.Close asChild>
+            <button className="cn-btn cn-btn--ghost cn-btn--icon" aria-label="Close" style={{ position: "absolute", right: 12, top: 12 }}>✕</button>
+          </D.Close>
+        </D.Content>
+      </D.Portal>
+    </D.Root>
+  );
+}

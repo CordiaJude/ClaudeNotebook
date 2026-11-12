@@ -5,6 +5,7 @@ import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useOthers } from 
 import { useLiveblocksExtension } from "@liveblocks/react-tiptap";
 import { buildExtensions } from "@/lib/editor/extensions";
 import { slugify } from "@/lib/editor/constants";
+import { insertMarkdown } from "@/lib/editor/markdown";
 import type { SlashState } from "@/lib/editor/slash";
 import { createClient } from "@/lib/supabase/client";
 import { AvatarStack } from "@/components/ui/misc";
@@ -12,6 +13,9 @@ import { Skeleton } from "@/components/ui/misc";
 import { BubbleToolbar } from "./BubbleToolbar";
 import { SlashMenu } from "./SlashMenu";
 import { TableBar } from "./TableBar";
+import { ChipPicker } from "./ChipPicker";
+import { EnumManager } from "./EnumManager";
+import { useNotebook } from "./context";
 
 export type Role = "owner" | "editor" | "commenter" | "viewer";
 
@@ -31,8 +35,9 @@ async function uploadImage(file: File, notebookId: string): Promise<{ blobId: st
   return res.json();
 }
 
-function EditorBody({ notebookId, role, initialContent }: { notebookId: string; role: Role; initialContent: JSONContent }) {
+function EditorBody({ notebookId, role, initialContent, syncsTitle }: { notebookId: string; role: Role; initialContent: JSONContent; syncsTitle: boolean }) {
   const canEdit = role === "owner" || role === "editor";
+  const { author } = useNotebook();
   const liveblocks = useLiveblocksExtension({ initialContent, comments: false, mentions: false });
   const [slash, setSlash] = useState<SlashState | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -41,12 +46,8 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
   const syncTitle = useCallback((e: TiptapEditor) => {
     clearTimeout(titleTimer.current);
     titleTimer.current = setTimeout(async () => {
-      let title = "";
-      e.state.doc.descendants((n) => {
-        if (title) return false;
-        if (n.type.name === "heading" && n.attrs.level === 1) { title = n.textContent.trim(); return false; }
-        return true;
-      });
+      const first = e.state.doc.firstChild;
+      const title = first?.type.name === "title" ? first.textContent.trim() : "";
       if (title) await createClient().from("notebooks").update({ title: title.slice(0, 200), updated_at: new Date().toISOString() }).eq("id", notebookId);
     }, 2000);
   }, [notebookId]);
@@ -61,7 +62,7 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
   const editor = useEditor({
     immediatelyRender: false,
     editable: canEdit,
-    extensions: [liveblocks, ...buildExtensions({ onSlash: setSlash })],
+    extensions: [liveblocks, ...buildExtensions({ onSlash: setSlash, getAuthor: () => author })],
     editorProps: {
       attributes: { class: "cn-prose", role: "textbox", "aria-multiline": "true", "aria-label": "Document" },
       handlePaste(view, event) {
@@ -72,7 +73,7 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
         const looksMd = /^(#{1,3} |[-*] |\d+\. |> |```)|\*\*[^*]+\*\*|^\|.+\|$/m.test(text);
         if (types.includes("text/plain") && !types.includes("text/html") && looksMd && !view.state.selection.$from.parent.type.spec.code) {
           event.preventDefault();
-          editorRef.current?.commands.insertContent(text, { contentType: "markdown" });
+          insertMarkdown(editorRef.current!, text);
           return true;
         }
         return false; // HTML paste goes through the schema, which drops anything not in it
@@ -98,7 +99,7 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
         return false;
       },
     },
-    onUpdate: ({ editor: e }) => { if (canEdit) syncTitle(e); },
+    onUpdate: ({ editor: e }) => { if (canEdit && syncsTitle) syncTitle(e); },
   });
   const editorRef = useRef<TiptapEditor | null>(null);
   useEffect(() => { editorRef.current = editor; }, [editor]);
@@ -115,6 +116,7 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
     <>
       <div className="cn-editor-chrome">
         <TableBar editor={editor} />
+        <EnumManager />
         <span style={{ flex: 1 }} />
         <Presence />
         {!canEdit ? <span className="cn-badge">{role === "commenter" ? "Comment only" : "View only"}</span> : null}
@@ -122,17 +124,18 @@ function EditorBody({ notebookId, role, initialContent }: { notebookId: string; 
       <div className="cn-doc"><EditorContent editor={editor} /></div>
       {canEdit ? <BubbleToolbar editor={editor} /> : null}
       <SlashMenu state={slash} />
+      <ChipPicker editor={editor} />
       <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void insertImages([f], editor); e.target.value = ""; }} />
     </>
   );
 }
 
-export function NotebookEditor(props: { notebookId: string; room: string; role: Role; initialContent: JSONContent }) {
+export function NotebookEditor(props: { notebookId: string; room: string; role: Role; initialContent: JSONContent; syncsTitle: boolean }) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider id={props.room}>
         <ClientSideSuspense fallback={<Skeleton h={240} />}>
-          <EditorBody notebookId={props.notebookId} role={props.role} initialContent={props.initialContent} />
+          <EditorBody notebookId={props.notebookId} role={props.role} initialContent={props.initialContent} syncsTitle={props.syncsTitle} />
         </ClientSideSuspense>
       </RoomProvider>
     </LiveblocksProvider>
