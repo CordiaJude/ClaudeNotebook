@@ -1,5 +1,29 @@
 # PROGRESS
 
+## Phase 2 — Editor core: CODE DONE, LIVE PATHS UNTESTED
+
+**Built**
+- Auth: Supabase magic link (`/login`, `/auth/callback`, `/auth/signout`), `proxy.ts` session refresh + redirect to `/login`. Migration `0002_profile_trigger.sql` auto-creates a `profiles` row per new user (needed: notebooks.owner_id FK). **Owner must run 0002 in the Supabase SQL editor.**
+- Notebooks list (`/notebooks`): search, 6 templates (Blank, Memo, Plan, Brief, Report, Meeting notes), create via server action (notebook + first tab + room id `nb:<nb>:tab:<tab>`).
+- Editor shell `/n/[id]`: tab tray (read-only list), paper, rail placeholder, responsive breakpoints per §4.4.
+- Tiptap 3: H1-3, paragraphs, bullet/ordered/task lists (ticked = struck + dimmed), blockquote, divider, links (http/https/mailto/#/relative only), anchor links, marks (bold, italic, underline, strike, code, highlight), tables (resizable, header row, add/remove row/col, merge/split, 7-color cell backgrounds), code blocks with latex (KaTeX), csv (read-only grid), markdown (react-markdown, no raw HTML), mermaid (strict mode), highlight.js-style syntax colors, images (blob-only, upload route), slash menu, bubble toolbar, table bar, UniqueID on every block, markdown paste, HTML paste sanitized by schema.
+- Liveblocks: `/api/liveblocks-auth` maps Supabase role -> room permission; `RoomProvider` per tab; Yjs sync + cursors via `@liveblocks/react-tiptap`; presence avatars. Autosave = Liveblocks persistence.
+- Notebook title follows the first H1 (debounced 2s).
+- `/api/upload` (png/jpeg/webp/gif, 10 MB, membership check before service-role write), `/api/blob/[id]` (RLS read, 5-min signed URL redirect).
+- `/design/editor`: no-backend editor sandbox used by tests.
+
+**Verified (automated, this sandbox)**: lint, typecheck, build; 10 unit/RLS tests (incl. profile trigger); 17 Playwright tests (11 editor: slash, shortcuts, tasks, marks, table + color + merge, 4 code languages, link safety, paste sanitize, markdown paste, block ids, undo/redo).
+
+**NOT verified (sandbox cannot reach Supabase/Liveblocks)**: magic-link sign-in, creating a notebook, Liveblocks sync/cursors between two browsers, image upload, role->permission mapping, reload persistence. Owner is testing these on the deploy. Spec "done when" for two live browsers + reload is therefore OPEN.
+
+**Decisions / deviations**
+- Spec conflict: Cmd+K is both "link" (§4.9 list) and "Ask Claude focus" [D]. Cmd+K = link now; Ask Claude gets Cmd+Shift+K in Phase 4.
+- Template content is seeded client-side via `initialContent` (applies only if the Yjs doc is empty) from `?t=` after creation. A notebook opened first without `?t=` starts blank.
+- Tab add/rename/nest/delete UI is Phase 3 (tray is read-only). Chips, byline, pending, embed are Phase 3. Comments/suggestions are Phases 5/6.
+- Hidden Liveblocks features: `comments:false`, `mentions:false` until Phase 5.
+- Image `src` is `/api/blob/<id>` plus a `blobId` attr (spec: `blob/<id>`).
+- F11 "Ask Claude to edit" toolbar action is Phase 4.
+
 ## Phase 1 — Design system: DONE
 
 - `styles/tokens.css` (spec §4.2 verbatim + dark additions), `styles/components.css`, `lib/theme.ts` (pre-paint theme script, system default, persisted toggle).

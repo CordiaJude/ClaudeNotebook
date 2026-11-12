@@ -4,6 +4,8 @@
 @import "@fontsource-variable/jetbrains-mono";
 @import "../styles/tokens.css";
 @import "../styles/components.css";
+@import "../styles/editor.css";
+@import "katex/dist/katex.min.css";
 
 html { background: var(--cn-canvas); }
 body {

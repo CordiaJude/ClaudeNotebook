@@ -11,7 +11,7 @@ let nb: string;
 // Shim of the Supabase pieces the migration depends on.
 const SHIM = `
   create schema auth; create schema storage;
-  create table auth.users (id uuid primary key);
+  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.uid', true), '')::uuid $$;
   create table storage.buckets (id text primary key, name text, public boolean);
@@ -32,13 +32,20 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(SHIM);
   await db.exec(readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0001_init.sql"), "utf8"));
+  await db.exec(readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0002_profile_trigger.sql"), "utf8"));
   await db.exec(`grant select, insert, update, delete on all tables in schema public to authenticated;
                  grant execute on all functions in schema public to authenticated;`);
-  await db.exec(`insert into auth.users values ('${A}'),('${B}');
-                 insert into profiles values ('${A}','Alice',null,now()),('${B}','Bob',null,now());`);
+  await db.exec(`insert into auth.users (id, email) values ('${A}','alice@example.com'),('${B}','bob@example.com');`);
   const r = await as<{ id: string }>(A, `insert into notebooks (owner_id,title) values ('${A}','A secret') returning id`);
   nb = r.rows[0]!.id;
   await as(A, `insert into tabs (notebook_id,name,order_key,liveblocks_room) values ('${nb}','T','a','room-1')`);
+});
+
+describe("profile trigger (0002)", () => {
+  it("creates a profile for each new auth user, named from the email", async () => {
+    const r = await db.query<{ display_name: string }>(`select display_name from profiles order by display_name`);
+    expect(r.rows.map((x) => x.display_name)).toEqual(["alice", "bob"]);
+  });
 });
 
 describe("RLS: two users", () => {
