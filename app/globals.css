@@ -1,3 +1,21 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/source-serif-4/wght.css";
+@import "@fontsource-variable/jetbrains-mono";
 @import "../styles/tokens.css";
-body { background: var(--cn-canvas); color: var(--cn-text-primary); }
+@import "../styles/components.css";
+
+html { background: var(--cn-canvas); }
+body {
+  background: var(--cn-canvas);
+  color: var(--cn-text-primary);
+  font-family: var(--cn-font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: rgba(56, 152, 236, 0.22); }
+:focus-visible { outline: 2px solid var(--cn-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

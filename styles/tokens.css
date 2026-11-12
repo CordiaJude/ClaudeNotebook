@@ -1,6 +1,118 @@
-/* Phase 0 placeholder. Full token set lands in Phase 1 (spec §4.2). */
-:root {
-  --cn-canvas: #f5f4ed;
-  --cn-paper: #faf9f5;
-  --cn-text-primary: #141413;
+/* Claude Notebook DS tokens (spec §4.2). Dark mode is applied via data-theme, set before paint by lib/theme.ts. */
+:root, [data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --cn-canvas: #f5f4ed;          /* app bg behind paper, sidebars [V2] */
+  --cn-paper: #faf9f5;           /* document page, panels [V2] */
+  --cn-surface: #ffffff;         /* cards, popovers, inputs, comment cards */
+  --cn-surface-hover: #f0eee6;   /* [V2] */
+  --cn-surface-pressed: #e8e6dc; /* [V2] */
+  --cn-border: rgba(20, 20, 19, 0.12);        /* [V2] */
+  --cn-border-soft: #f0eee6;                  /* [V2] */
+  --cn-border-strong: rgba(20, 20, 19, 0.24); /* [D] */
+
+  /* Text (all warm, never pure black except action) */
+  --cn-text-primary: #141413;    /* [V2] */
+  --cn-text-secondary: #3d3d3a;  /* [V2] */
+  --cn-text-muted: #5e5d59;      /* [V2] */
+  --cn-text-meta: #6b6a64;       /* AA deviation: spec #87867f is 3.4:1 on paper */
+  --cn-text-disabled: #b0aea5;   /* [V2/brand] */
+  --cn-text-on-action: #ffffff;
+
+  /* Action: solid black pills [V2] */
+  --cn-action: #000000;
+  --cn-action-hover: #1f1e1d;
+  --cn-action-disabled: #b0aea5;
+
+  /* Accent: clay */
+  --cn-accent: #d97757;                       /* [V2] marks, cursors, highlights */
+  --cn-accent-strong: #c6613f;                /* [V2] links, hover */
+  --cn-accent-tint: rgba(217, 119, 87, 0.12); /* [D] */
+  --cn-accent-ink: #9f4a2e;                   /* [D] text on tint, AA */
+
+  /* Semantic */
+  --cn-focus: #3898ec;     /* [V2] focus ring — the only cool UI color */
+  --cn-danger: #b53333;    /* [V2] */
+  --cn-success: #17a34a;   /* [V2] */
+  --cn-warning: #eab308;   /* [V2] */
+
+  /* Secondary illustration palette [V2] */
+  --cn-heather: #cbcadb; --cn-plum: #827dbd; --cn-cactus: #bcd1ca;
+  --cn-mineral: #629987; --cn-peach: #ebc9b7;
+  --cn-brand-blue: #6a9bcc; --cn-brand-green: #788c5d; /* brand guidelines */
+
+  /* Table cell backgrounds [V1] */
+  --cn-cell-gray: #f0efec; --cn-cell-red: #fbebeb; --cn-cell-orange: #f9ece7;
+  --cn-cell-yellow: #f9eeda; --cn-cell-green: #e5f4e4; --cn-cell-blue: #e7f1fb;
+  --cn-cell-purple: #efedff;
+
+  /* Suggestions [D] */
+  --cn-ins-bg: rgba(23, 163, 74, 0.14);  --cn-ins-ink: #166534;
+  --cn-del-bg: rgba(181, 51, 51, 0.12);  --cn-del-ink: #8f2a2a;
+
+  /* Chart tokens (names mirror Claude's --cds-chart-*) [D values] */
+  --cn-chart-muted: #b0aea5;
+  --cn-chart-grid: rgba(20, 20, 19, 0.08);
+  --cn-chart-axis: rgba(20, 20, 19, 0.35);
+  --cn-chart-reference: #87867f;
+  --cn-chart-reference-tint: rgba(20, 20, 19, 0.05);
+  --cn-chart-cat-1: #4a7db5;  /* the accent blue */
+  --cn-chart-cat-2: #d97757;  --cn-chart-cat-3: #629987; --cn-chart-cat-4: #827dbd;
+  --cn-chart-cat-5: #c9a24d;  --cn-chart-cat-6: #788c5d; --cn-chart-cat-7: #8a8880;
+  --cn-chart-cat-8: #c2677e;
+  --cn-chart-good: #3f8f5b; --cn-chart-warning: #c99a2e;
+  --cn-chart-serious: #d4743a; --cn-chart-critical: #b53333;
+
+  /* Type */
+  --cn-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --cn-font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --cn-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --cn-doc-body-font: var(--cn-font-sans); /* [D] flip to serif if side-by-side with real Docs shows serif body */
+
+  /* Layout */
+  --cn-doc-width: 672px;   /* [V1] doc text column on a laptop */
+  --cn-tabs-width: 240px;  /* [D] */
+  --cn-rail-width: 320px;  /* [D] comment rail / Ask Claude panel */
+
+  /* Radii */
+  --cn-radius-xs: 4px;   /* [V2] --cds-radius */
+  --cn-radius-sm: 8px;   /* [V1] widget boxes rx=8 */
+  --cn-radius-md: 10px;  /* [V2] fields */
+  --cn-radius-lg: 16px;  /* [D] */
+  --cn-radius-xl: 24px;  /* [V2] cards */
+  --cn-radius-full: 9999px;
+
+  /* Shadows */
+  --cn-shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.06);                           /* [D] */
+  --cn-shadow-md: 0 4px 12px -2px rgba(20, 20, 19, 0.08);                     /* [D] */
+  --cn-shadow-lg: 0 10px 15px -3px rgba(0,0,0,.10), 0 4px 6px -4px rgba(0,0,0,.10); /* [V2] */
+
+  /* Motion [D] */
+  --cn-ease: cubic-bezier(0.2, 0, 0, 1);
+  --cn-dur-fast: 120ms; --cn-dur: 200ms; --cn-dur-slow: 320ms;
+}
+
+[data-theme="dark"] {  /* [D] all dark values: tune by eye against Claude dark mode */
+  color-scheme: dark;
+  --cn-canvas: #1a1a18; --cn-paper: #262624; --cn-surface: #30302e;
+  --cn-surface-hover: #3a3a37; --cn-surface-pressed: #44443f;
+  --cn-border: rgba(250, 249, 245, 0.14); --cn-border-soft: rgba(250,249,245,.08);
+  --cn-border-strong: rgba(250, 249, 245, 0.28);
+  --cn-text-primary: #faf9f5; --cn-text-secondary: #c2c0b6;
+  --cn-text-muted: #adaba2; --cn-text-meta: #9a988f; --cn-text-disabled: #5e5d59;
+  --cn-action: #faf9f5; --cn-text-on-action: #141413; --cn-action-hover: #e8e6dc;
+  --cn-accent-strong: #e8896b; --cn-accent-ink: #f0b5a0;
+  --cn-cell-gray: #3a3a37; --cn-cell-red: #4a2a2a; --cn-cell-orange: #4a3226;
+  --cn-cell-yellow: #4a4026; --cn-cell-green: #26402c; --cn-cell-blue: #26364a;
+  --cn-cell-purple: #34304a;
+  --cn-chart-grid: rgba(250,249,245,.10); --cn-chart-axis: rgba(250,249,245,.40);
+  --cn-chart-muted: #6f6d66;
+  /* additions beyond spec, [D] */
+  --cn-ins-bg: rgba(74, 200, 120, 0.2); --cn-ins-ink: #8fe0aa;
+  --cn-del-bg: rgba(230, 100, 100, 0.2); --cn-del-ink: #f0a0a0;
+  --cn-accent-tint: rgba(217, 119, 87, 0.2);
+  --cn-text-on-accent: #141413;
+  --cn-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  --cn-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
 }
