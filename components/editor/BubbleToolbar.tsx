@@ -2,7 +2,7 @@
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useEditorState, type Editor } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
-import { IconBold, IconItalic, IconLink } from "@/components/ui/icons";
+import { IconBold, IconItalic, IconLink, IconSparkle } from "@/components/ui/icons";
 
 export function BubbleToolbar({ editor }: { editor: Editor }) {
   const s = useEditorState({
@@ -20,6 +20,7 @@ export function BubbleToolbar({ editor }: { editor: Editor }) {
         <Button variant="icon" aria-label="Inline code" {...t(s.c)} onClick={() => editor.chain().focus().toggleCode().run()}><span className="cn-code">{"</>"}</span></Button>
         <Button variant="icon" aria-label="Highlight" {...t(s.h)} onClick={() => editor.chain().focus().toggleHighlight().run()}><mark style={{ padding: "0 4px", background: "var(--cn-accent-tint)", color: "inherit" }}>H</mark></Button>
         <Button variant="icon" aria-label="Link" {...t(s.l)} onClick={() => editor.commands.focus() && document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}><IconLink /></Button>
+        <Button variant="ghost" size="sm" aria-label="Ask Claude to edit the selection" onClick={() => { const { from, to } = editor.state.selection; window.dispatchEvent(new CustomEvent("cn:ask-claude", { detail: { text: editor.state.doc.textBetween(from, to, " ").slice(0, 2000) } })); }}><IconSparkle /> Ask Claude</Button>
       </div>
     </BubbleMenu>
   );

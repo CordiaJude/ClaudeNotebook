@@ -1,5 +1,35 @@
 # PROGRESS
 
+## Phase 4 — Op engine + agent: CODE DONE, REAL-MODEL AND LIVE PATHS UNTESTED
+
+**Built**
+- `lib/ops/*` the op engine on ProseMirror transforms. Ops: replace (find / blocks / cell), insert (blocks / root / cell / find / table row / table column), delete (text, blocks, rows, columns), move, set (heading level, list kind, task checked, cell background/colwidth), wrap, unwrap, join. `restore` is refused until history exists (Phase 8). Atomic per call; max 50 ops (`too_many`). Malformed ops get a fix, not a stack trace.
+- All spec error codes: guard_mismatch, missing_guard, find_none, char_gone (nth gone), block_gone, cell_none, last_block, anchors_affected, dropped, bad_request, forbidden, too_many. `last_tab` lives in `lib/tabs.ts` (Phase 3). Each failure carries `fix` and, where useful, `current` (the block as it stands now) so the agent can re-aim.
+- Guards: whole-block / cell edits need `ifHash` (pending blocks exempt); text under a comment mark cannot be rewritten or deleted without `allowDetach` (then reported in `detached`); markdown replaces that would lose chips are refused as `dropped`; title and byline are structural and never replaced/deleted as blocks.
+- Markdown dialect: GFM + `<?cn block KEY?>` tokens resolved from a `blocks` map (date, mention, pending, embed, dropdown). `lib/ops/birth.ts` turns skeleton markdown into title + byline + body.
+- `lib/ops/ydoc.ts`: reads the live Yjs doc into ProseMirror, applies ops, writes back only a **delta** (so concurrent human edits elsewhere merge by CRDT). Round-trips the full schema losslessly.
+- `lib/ai/*`: tools `notebook_create`, `notebook_read` (outline / view / search / changes), `notebook_edit`; manual tool-use loop on `claude-sonnet-5-5` (prompt-cached, effort `medium`, no forced tool_choice, no sampling params, thinking left on its default and passed back unchanged); system prompt in our words (byte-stable); `executeRun`: role check, daily cap, run ledger, pre-run Liveblocks version snapshot, SSE stream, presence, Stop via abort, 270 s time budget, 40-turn cap.
+- `POST /api/agent/run` (SSE). Migration `0003_agent_usage.sql`: atomic per-user daily cap `agent_try_start_run` (service role only). `AGENT_DAILY_RUNS` (default 40).
+- UI: Ask Claude panel in the right rail (examples as the empty state = F113, streaming notes + reply, Stop, `aria-live`, Cmd/Ctrl+Shift+K), "Write with Claude" prompt on the notebooks list (the notebook opens the moment Claude has laid out its sections; the run keeps streaming after navigation), selection hand-off from the bubble toolbar ("Ask Claude", F111), presence pill "Claude is editing · <section>" (F101).
+- `scripts/agent-eval.ts` (`pnpm eval:agent`): 6 scripted evals against the REAL model (memo, comparison table, edit-in-place, human edits first, comment anchors, deleted pending block). Not run here (no key).
+
+**Verified (automated)**: 119 unit/RLS tests incl. 55 engine tests and an 8000-run property test (random op sequences never corrupt the doc, never duplicate ids, never lose a comment anchor silently), Yjs convergence tests (agent fills a pending block while a person edits elsewhere: both survive; stale guard refused and nothing overwritten), scripted-model tests for the full birth-then-fill loop, guard errors reaching the model, abort, budgets, refusal, roles, cap; 36 Playwright tests incl. the panel UI against a stubbed SSE stream. The engine also runs correctly inside the real Next.js server bundle (checked with a throwaway route, since removed). Op-engine coverage: 97% lines, 91% statements, 78% branches.
+
+**Bugs the property test found and fixed**: inserting a block beside a list item split the list and duplicated its id (placement is now exact or refused); wrapping a heading into a list dropped its comment mark and chips.
+
+**NOT verified (needs the real key / live services)**
+- Anything that depends on the model's judgement: skeleton-first, one section per call, recovering from `guard_mismatch`. The tests prove the plumbing with a scripted model. Run `pnpm eval:agent` with your key.
+- Liveblocks server calls: `getOrCreateRoom`, `getYjsDocumentAsBinaryUpdate`, `sendYjsBinaryUpdate` (do open browsers receive the delta live?), `createVersionHistorySnapshot`, `setPresence` (does `useOthers` show the REST presence user `agent:claude`?).
+- Supabase adapters (notebook/tab creation as the user, run ledger, the `agent_try_start_run` RPC), and the real SSE stream through Vercel.
+
+**Decisions / deviations**
+- Refusal fallbacks (`fallbacks: "default"` beta) are NOT enabled: the response shape adds block types I could not verify offline. A refusal ends the run with an error message.
+- `restore`, `suggest` mode, comment/`@Claude` triggers, tabs/widget/history/enum/upload tools are later phases. Table merge/split by the agent is deferred (humans can merge/split in the UI).
+- Claude has no live caret yet (presence pill only).
+- Right rail is hidden below 1024 px (no bottom sheet yet), so the panel is desktop-only for now.
+- `maxDuration = 300`: Vercel's cap depends on plan; verify yours. The loop stops itself at 270 s and says so.
+- Nesting/targets: `find` is ambiguous-by-default (error unless `nth`), so the agent cannot edit the wrong occurrence by accident.
+
 ## Phase 3 — Tabs, chips, byline, pending: CODE DONE, LIVE PATHS UNTESTED
 
 **Built**

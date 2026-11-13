@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor as TiptapEditor, type JSONContent } from "@tiptap/react";
 import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useOthers } from "@liveblocks/react";
+import { ClaudePresencePill } from "@/components/doc/parts";
+import { useAgent } from "./AskPanel";
 import { useLiveblocksExtension } from "@liveblocks/react-tiptap";
 import { buildExtensions } from "@/lib/editor/extensions";
 import { slugify } from "@/lib/editor/constants";
@@ -18,6 +20,15 @@ import { EnumManager } from "./EnumManager";
 import { useNotebook } from "./context";
 
 export type Role = "owner" | "editor" | "commenter" | "viewer";
+
+/** "Claude is editing · <section>" (F101): from this person's own run, or from the room presence the server sets for everyone else. */
+function ClaudePill() {
+  const run = useAgent();
+  const remote = useOthers((others) => others.find((o) => o.id === "agent:claude")?.presence?.editing ?? null);
+  const section = run.running ? run.section : remote;
+  if (!run.running && !remote) return null;
+  return <ClaudePresencePill section={section ?? "working"} />;
+}
 
 function Presence() {
   const others = useOthers();
@@ -118,6 +129,7 @@ function EditorBody({ notebookId, role, initialContent, syncsTitle }: { notebook
         <TableBar editor={editor} />
         <EnumManager />
         <span style={{ flex: 1 }} />
+        <ClaudePill />
         <Presence />
         {!canEdit ? <span className="cn-badge">{role === "commenter" ? "Comment only" : "View only"}</span> : null}
       </div>

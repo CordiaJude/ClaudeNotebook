@@ -48,10 +48,6 @@ export default async function NotebookPage({ params, searchParams }: { params: P
         members={(memberRows ?? []).map((m) => ({ id: m.user_id, name: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? "Someone" }))}
         notebooks={nbRows ?? []} enums={(enumRows ?? []) as EnumRow[]} initialContent={initialContent} syncsTitle={isFirst}
       />
-      <aside className="cn-rail" aria-label="Comments">
-        <p className="cn-eyebrow">Comments</p>
-        <p className="cn-caption">Threads on text, cells and the whole tab appear here.</p>
-      </aside>
     </div>
   );
 }

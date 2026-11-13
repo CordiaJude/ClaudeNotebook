@@ -5,6 +5,8 @@ import type { JSONContent } from "@tiptap/react";
 import { NotebookEditor, type Role } from "./Editor";
 import { NotebookProvider, type EnumRow } from "./context";
 import { TabTray } from "./TabTray";
+import { AskPanel } from "./AskPanel";
+import { Segmented } from "@/components/ui/misc";
 import type { TabRow } from "@/lib/tabs";
 
 export function Workspace(props: {
@@ -15,6 +17,7 @@ export function Workspace(props: {
 }) {
   const router = useRouter();
   const [enums, setEnums] = useState(props.enums);
+  const [rail, setRail] = useState<"ask" | "comments">("ask");
   const canEdit = props.role === "owner" || props.role === "editor";
   const ctx = useMemo(() => ({
     notebookId: props.notebookId, canEdit, author: props.author, members: props.members, notebooks: props.notebooks,
@@ -32,6 +35,14 @@ export function Workspace(props: {
           <NotebookEditor key={props.currentTab.id} notebookId={props.notebookId} room={props.currentTab.liveblocks_room} role={props.role} initialContent={props.initialContent} syncsTitle={props.syncsTitle} />
         </div>
       </main>
+      <aside className="cn-rail" aria-label="Side panel" style={{ display: "grid", gridTemplateRows: "auto 1fr", gap: 12, minHeight: 0 }}>
+        <Segmented label="Side panel" value={rail} onValueChange={setRail} options={[{ value: "ask", label: "Ask Claude" }, { value: "comments", label: "Comments" }]} />
+        {rail === "ask" ? (
+          <AskPanel notebookId={props.notebookId} tabId={props.currentTab.id} canEdit={canEdit} />
+        ) : (
+          <div><p className="cn-eyebrow">Comments</p><p className="cn-caption">Threads on text, cells and the whole tab appear here.</p></div>
+        )}
+      </aside>
     </NotebookProvider>
   );
 }

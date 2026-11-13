@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES } from "@/lib/templates";
 import { createNotebook } from "./actions";
 import { NotebookSearch } from "./NotebookSearch";
+import { NewWithClaude } from "./NewWithClaude";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function NotebooksPage() {
       </header>
       <div className="cn-section" style={{ padding: "32px 16px 96px" }}>
         <h1 className="cn-h-title" style={{ margin: "0 0 24px" }}>Notebooks</h1>
+        <NewWithClaude />
         <section aria-label="New notebook" style={{ marginBottom: 48 }}>
           <h2 className="cn-eyebrow" style={{ marginBottom: 12 }}>Start from a template</h2>
           <div className="cn-swatch-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))" }}>

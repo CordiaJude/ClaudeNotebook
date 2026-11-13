@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test --trace off"
+    "e2e": "playwright test --trace off",
+    "eval:agent": "tsx scripts/agent-eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -85,6 +86,7 @@
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
   }
