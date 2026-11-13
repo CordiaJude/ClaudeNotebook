@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/misc";
-import { authErrorMessage, normalizeUsername, usernameToEmail, validateCredentials } from "@/lib/auth";
+import { authErrorMessage, displayName, usernameToEmail, validateCredentials } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm({ next }: { next?: string }) {
@@ -21,7 +21,7 @@ export function LoginForm({ next }: { next?: string }) {
     if (problem) { setError(problem); return; }
     setBusy(true); setError("");
     const supabase = createClient();
-    const name = normalizeUsername(username);
+    const name = displayName(username);
     const email = usernameToEmail(name);
     const { data, error: err } = mode === "signup"
       ? await supabase.auth.signUp({ email, password, options: { data: { name } } })
@@ -36,7 +36,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form onSubmit={submit} style={{ display: "grid", gap: 12 }} noValidate>
       <Segmented label="Sign in or create an account" value={mode} onValueChange={(m) => { setMode(m); setError(""); }} options={[{ value: "signin", label: "Sign in" }, { value: "signup", label: "Create account" }]} />
-      <Input aria-label="Username" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <Input aria-label="Name" autoComplete="name" spellCheck={false} placeholder="Your name (this is your username)" value={username} onChange={(e) => setUsername(e.target.value)} />
       <Input type="password" aria-label="Password" autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder={mode === "signup" ? "Password (8+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
       <Button type="submit" disabled={busy}>{busy ? "One moment…" : mode === "signup" ? "Create account" : "Sign in"}</Button>
       {error ? <p role="alert" style={{ color: "var(--cn-danger)", margin: 0 }}>{error}</p> : null}
