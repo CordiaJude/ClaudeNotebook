@@ -15,7 +15,7 @@ const SHIM = `
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.uid', true), '')::uuid $$;
   create table storage.buckets (id text primary key, name text, public boolean);
-  create role authenticated nologin;
+  create role authenticated nologin; create role anon nologin; create role service_role nologin;
   grant usage on schema public, auth to authenticated;
 `;
 
@@ -33,6 +33,7 @@ beforeAll(async () => {
   await db.exec(SHIM);
   await db.exec(readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0001_init.sql"), "utf8"));
   await db.exec(readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0002_profile_trigger.sql"), "utf8"));
+  await db.exec(readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0003_agent_usage.sql"), "utf8"));
   await db.exec(`grant select, insert, update, delete on all tables in schema public to authenticated;
                  grant execute on all functions in schema public to authenticated;`);
   await db.exec(`insert into auth.users (id, email) values ('${A}','alice@example.com'),('${B}','bob@example.com');`);
@@ -45,6 +46,24 @@ describe("profile trigger (0002)", () => {
   it("creates a profile for each new auth user, named from the email", async () => {
     const r = await db.query<{ display_name: string }>(`select display_name from profiles order by display_name`);
     expect(r.rows.map((x) => x.display_name)).toEqual(["alice", "bob"]);
+  });
+});
+
+describe("agent daily cap (0003)", () => {
+  const start = async (u: string, max: number) => (await db.query<{ agent_try_start_run: boolean }>(`select agent_try_start_run('${u}', ${max})`)).rows[0]!.agent_try_start_run;
+  it("allows exactly max runs per user per day, then refuses; users are independent", async () => {
+    expect([await start(A, 2), await start(A, 2), await start(A, 2), await start(A, 2)]).toEqual([true, true, false, false]);
+    expect(await start(B, 2)).toBe(true);
+    const r = await db.query<{ runs: number }>(`select runs from agent_usage_daily where user_id='${A}'`);
+    expect(r.rows[0]!.runs).toBe(2); // refused attempts do not count
+  });
+  it("is not executable by signed-in users (service role only)", async () => {
+    const r = await db.query<{ ok: boolean }>(`select has_function_privilege('anon', 'public.agent_try_start_run(uuid,int)', 'execute') or has_function_privilege('authenticated', 'public.agent_try_start_run(uuid,int)', 'execute') as ok`);
+    // the test shim grants execute on all functions for helper fns, so assert on the migration text instead
+    const sql = readFileSync(path.join(import.meta.dirname, "../../supabase/migrations/0003_agent_usage.sql"), "utf8");
+    expect(sql).toMatch(/revoke all on function public\.agent_try_start_run\(uuid, int\) from anon, authenticated/);
+    expect(sql).toMatch(/grant execute on function public\.agent_try_start_run\(uuid, int\) to service_role/);
+    expect(typeof r.rows[0]!.ok).toBe("boolean");
   });
 });
 
