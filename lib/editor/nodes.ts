@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Mark, Node, mergeAttributes } from "@tiptap/core";
 import { Plugin } from "@tiptap/pm/state";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { BylineView, DateChipView, DropdownChipView, EmbedView, MentionChipView, PendingView } from "@/components/editor/NodeViews";
@@ -95,4 +95,14 @@ export const Embed = Node.create({
   parseHTML: () => [{ tag: "div[data-embed]" }],
   renderHTML: ({ HTMLAttributes }) => ["div", mergeAttributes(HTMLAttributes, { "data-embed": "" })],
   addNodeView: () => ReactNodeViewRenderer(EmbedView),
+});
+
+/** Anchor for a comment thread on text (spec §7). Wired to threads in Phase 5; the op engine already protects text under it. */
+export const CommentMark = Mark.create({
+  name: "comment",
+  inclusive: false,
+  excludes: "",
+  addAttributes: () => ({ threadId: { default: null, parseHTML: (el: HTMLElement) => el.getAttribute("data-thread"), renderHTML: (a: Record<string, unknown>) => (a.threadId ? { "data-thread": String(a.threadId) } : {}) } }),
+  parseHTML: () => [{ tag: "span[data-thread]" }],
+  renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes, { class: "cn-hl-comment" }), 0],
 });

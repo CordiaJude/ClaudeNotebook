@@ -13,7 +13,7 @@ import { common, createLowlight } from "lowlight";
 import { CodeBlockView } from "@/components/editor/CodeBlockView";
 import { isCellColor, isSafeHref } from "./constants";
 import { slashExtension, type SlashState } from "./slash";
-import { Byline, DateChip, Doc, DropdownChip, Embed, MentionChip, Pending, Title } from "./nodes";
+import { Byline, CommentMark, DateChip, Doc, DropdownChip, Embed, MentionChip, Pending, Title } from "./nodes";
 
 const lowlight = createLowlight(common);
 
@@ -41,7 +41,7 @@ const BlobImage = Image.extend({
   },
 });
 
-export const BLOCK_ID_TYPES = ["title", "byline", "pending", "embed", "heading", "paragraph", "bulletList", "orderedList", "taskList", "listItem", "taskItem", "blockquote", "codeBlock", "horizontalRule", "table", "image"];
+export const BLOCK_ID_TYPES = ["title", "byline", "pending", "embed", "tableRow", "heading", "paragraph", "bulletList", "orderedList", "taskList", "listItem", "taskItem", "blockquote", "codeBlock", "horizontalRule", "table", "image"];
 
 export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void; history?: boolean; getAuthor?: () => { id: string; name: string } | null }): AnyExtension[] {
   return [
@@ -65,6 +65,7 @@ export function buildExtensions(opts: { onSlash: (s: SlashState | null) => void;
     DropdownChip,
     Pending,
     Embed,
+    CommentMark,
     CodeBlockLowlight.extend({
       addNodeView() {
         return ReactNodeViewRenderer(CodeBlockView);
