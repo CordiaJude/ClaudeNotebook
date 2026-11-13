@@ -293,3 +293,28 @@ describe("call-level rules", () => {
   });
   it("fixture json stays valid", () => expect(() => schema.nodeFromJSON(fixtureJSON).check()).not.toThrow());
 });
+
+describe("malformed ops get a fix, not a stack trace", () => {
+  const bad = (op: unknown) => err([op as Op]);
+  it.each([
+    [{}, /"op"/],
+    [{ op: "nonsense" }, /"op"/],
+    [{ op: "replace" }, /target/],
+    [{ op: "replace", target: { kind: "weird" } }, /Unknown target kind/],
+    [{ op: "replace", target: { kind: "find" } }, /"text"/],
+    [{ op: "replace", target: { kind: "blocks", ids: "p1" } }, /ids/],
+    [{ op: "replace", target: { kind: "cell", table: "tb1" } }, /row, col/],
+    [{ op: "replace", target: { kind: "root" } }, /content/],
+    [{ op: "insert", target: { kind: "root" }, content: { as: "markdown", from: { kind: "inline", content: "x" } } }, /side/],
+    [{ op: "set", target: { kind: "blocks", ids: ["h1"] } }, /attrs/],
+    [{ op: "move", target: { kind: "blocks", ids: ["h1"] } }, /"to"/],
+    [{ op: "wrap", target: { kind: "blocks", ids: ["h1"] } }, /"with"/],
+  ])("%j", (op, re) => {
+    const e = bad(op);
+    expect(e.code).toBe("bad_request");
+    expect(e.fix).toMatch(re as RegExp);
+  });
+  it("content.from must be inline text", () => {
+    expect(bad({ op: "replace", target: { kind: "find", text: "Goals" }, content: { as: "text", from: { kind: "file" } } }).code).toBe("bad_request");
+  });
+});

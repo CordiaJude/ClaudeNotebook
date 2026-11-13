@@ -21,6 +21,33 @@ function textOf(c: Content): string {
   return c.from.content;
 }
 
+const OPS = ["replace", "insert", "delete", "move", "set", "wrap", "unwrap", "join", "restore"];
+const NEEDS_CONTENT = ["replace", "insert"];
+
+/** Reject malformed op objects with a fix the model can act on, before any document logic runs. */
+export function checkShape(op: unknown): void {
+  const o = op as Record<string, unknown> | null;
+  if (!o || typeof o !== "object" || typeof o.op !== "string" || !OPS.includes(o.op)) fail("bad_request", `Each op needs "op" (${OPS.join(" | ")}).`);
+  if (o!.op === "restore") return;
+  const t = o!.target as Record<string, unknown> | undefined;
+  if (!t || typeof t !== "object") fail("bad_request", `${o!.op} needs "target": {kind:"find",text} | {kind:"blocks",ids:[...]} | {kind:"cell",table,row,col} | {kind:"root"}.`);
+  switch (t!.kind) {
+    case "find": if (typeof t!.text !== "string") fail("bad_request", 'target {kind:"find"} needs "text".'); break;
+    case "blocks": if (!Array.isArray(t!.ids) || t!.ids.some((x) => typeof x !== "string")) fail("bad_request", 'target {kind:"blocks"} needs "ids": string[].'); break;
+    case "cell": if (typeof t!.table !== "string" || typeof t!.row !== "number" || typeof t!.col !== "number") fail("bad_request", 'target {kind:"cell"} needs table (block id), row, col (0-based; -1 = last).'); break;
+    case "root": break;
+    default: fail("bad_request", `Unknown target kind "${String(t!.kind)}". Use find, blocks, cell or root.`);
+  }
+  if (NEEDS_CONTENT.includes(o!.op as string)) {
+    const c = o!.content as Record<string, unknown> | undefined;
+    if (!c || typeof c !== "object" || !["text", "markdown", "row", "cells"].includes(String(c.as))) fail("bad_request", `${o!.op} needs "content": {as:"text"|"markdown", from:{kind:"inline", content:"..."}}.`);
+  }
+  if (o!.op === "set" && (!o!.attrs || typeof o!.attrs !== "object")) fail("bad_request", 'set needs "attrs" (heading | kind | checked | background | colwidth).');
+  if (o!.op === "insert" && typeof o!.side !== "string") fail("bad_request", 'insert needs "side": before | after | start | end.');
+  if (o!.op === "move" && (!o!.to || typeof o!.to !== "object" || typeof o!.side !== "string")) fail("bad_request", 'move needs "to": {kind:"blocks", ids:[one id]} and "side": before | after.');
+  if (o!.op === "wrap" && typeof o!.with !== "string") fail("bad_request", 'wrap needs "with": blockquote | bulletList | orderedList | taskList.');
+}
+
 export function applyOps(doc: Node, ops: Op[], opts: ApplyOptions): ApplyResult {
   if (!Array.isArray(ops) || ops.length === 0) return { ok: false, code: "bad_request", fix: "ops must be a non-empty array." };
   if (ops.length > MAX_OPS) return { ok: false, code: "too_many", fix: `Max ${MAX_OPS} ops per call; send fewer.` };
@@ -339,7 +366,7 @@ export function applyOps(doc: Node, ops: Op[], opts: ApplyOptions): ApplyResult 
 
   try {
     ops.forEach((op, i) => {
-      try { run(op); }
+      try { checkShape(op); run(op); }
       catch (e) {
         if (e instanceof OpError) { e.failure.opIndex = i; throw e; }
         const msg = e instanceof Error ? e.message.slice(0, 160) : "invalid edit";
