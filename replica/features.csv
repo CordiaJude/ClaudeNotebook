@@ -1,0 +1,46 @@
+feature,area,priority,original,clone,notes
+Sign up with email or Google,onboarding,must,yes,no,viewers of shared items must sign in
+Library of all docs and decks with search and type filter,library,must,yes,no,
+Create a doc from a plain-language prompt,docs,must,yes,no,
+AI asks clarifying questions before drafting,ai,must,yes,no,
+AI drafts live into the editor (streamed),ai,must,yes,no,hard part: structured edits not pasted text
+Chat panel beside the editor,workspace,must,yes,no,
+Rich-text editing: headings lists links tables,docs,must,yes,no,
+Select text then Edit with AI (changes only the selection),ai,must,yes,no,
+Create a deck from a prompt,slides,must,yes,no,
+Slide editor: thumbnails canvas move and resize elements,slides,must,yes,no,hard part
+Speaker notes drafted by AI,slides,must,yes,no,
+Present full screen,slides,must,yes,no,
+Design system: colours fonts applied to every deck,design system,must,yes,no,
+Share by email with viewer or editor role,sharing,must,yes,no,
+Docs and decks private by default,sharing,must,yes,no,
+Export doc to Word and PDF,export,must,yes,no,
+Export deck to PowerPoint and PDF,export,must,yes,no,
+Autosave,docs,must,yes,no,
+Owner-only rename and delete,sharing,must,yes,no,
+AI acts with the asking user's permissions,ai,must,yes,no,security rule
+Multi-tab documents,docs,should,yes,no,
+Inline comments on a selection,comments,should,yes,no,
+Mention @AI in a comment to get an edit and an explanation,ai,should,yes,no,
+Commenter role,sharing,should,yes,no,
+Share by link,sharing,should,yes,no,
+Change attribution (person vs AI),history,should,yes,no,
+Templates for docs and decks,library,should,yes,no,
+Brand-locked colour picker in slides,design system,should,yes,no,
+Build design system from an uploaded brand deck,design system,should,yes,no,
+Charts inside docs and slides,docs,should,yes,no,
+Export doc to Markdown,export,should,yes,no,
+Export deck to HTML and slide PNG,export,should,yes,no,
+Turn a doc into a deck,ai,should,yes,no,
+Export to Google Docs and Google Slides,export,could,yes,no,needs your own Google OAuth app and verification
+Real-time multi-user co-editing,collaboration,could,yes,no,hard part: CRDT (e.g. Yjs)
+Workspace-wide sharing,sharing,could,yes,no,
+Workspace default design system,design system,could,yes,no,
+Upload files as context for the AI,ai,could,yes,no,
+Slash command or Output picker to choose doc vs deck,workspace,could,yes,no,
+Email notifications on comments,comments,could,partial,no,
+Version restore,history,could,unknown,no,not confirmed in public sources
+Claude's logo palette and typefaces,design system,skip,yes,skip,Anthropic's brand; clone gets its own look with the same feel
+The Claude model,ai,skip,yes,skip,use an LLM API under your own brand
+Claude memory projects connectors and skills as context,ai,skip,yes,skip,part of Anthropic's platform
+Anthropic's user base and partner integrations,network,skip,yes,skip,
