@@ -4,6 +4,7 @@ import { Liveblocks } from "@liveblocks/node";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { roomIdFor } from "@/lib/rooms";
+import { TOKENS } from "@/lib/tokens.generated";
 import { DAILY_RUNS } from "./models";
 import type { NotebookBackend, RoomStore, TabInfo } from "./exec";
 import type { AnthropicLike } from "./loop";
@@ -78,7 +79,7 @@ export function liveblocksExtras(lb: Liveblocks): Pick<RunDeps, "snapshot" | "pr
   return {
     async snapshot(room) { await lb.createVersionHistorySnapshot(room); },
     async presence(room, label) {
-      await lb.setPresence(room, { userId: "agent:claude", data: { editing: label }, userInfo: { name: "Claude", color: "#d97757" }, ttl: label ? 60 : 2 });
+      await lb.setPresence(room, { userId: "agent:claude", data: { editing: label }, userInfo: { name: "Claude", color: TOKENS.color.light.accent }, ttl: label ? 60 : 2 });
     },
   };
 }

@@ -1,6 +1,6 @@
 import { BRAND } from "@/lib/brand";
 
-/** Our own mark: notebook page with folded corner and two ink lines. Not an asterisk. */
+/** Placeholder mark until /replica-brand: a page with a folded corner and two lines of text. Our own drawing. */
 export function Mark({ size = 24, title }: { size?: number; title?: string }) {
   return (
     <svg
@@ -25,7 +25,7 @@ export function Mark({ size = 24, title }: { size?: number; title?: string }) {
 
 export function Wordmark({ size = 20 }: { size?: number }) {
   return (
-    <span className="cn-wordmark" style={{ fontSize: size }}>
+    <span className="ui-wordmark" style={{ fontSize: size }}>
       <Mark size={Math.round(size * 1.2)} />
       <span>{BRAND.name}</span>
     </span>

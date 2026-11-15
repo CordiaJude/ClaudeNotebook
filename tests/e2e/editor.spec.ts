@@ -2,11 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 const open = async (page: Page) => {
   await page.goto("/design/editor");
-  await page.locator(".cn-prose").waitFor();
+  await page.locator(".ui-prose").waitFor();
   await page.evaluate(() => (window as any).__editor.commands.setContent({ type: "doc", content: [{ type: "title", content: [{ type: "text", text: "T" }] }, { type: "byline", attrs: { asof: "2026-11-12", authorId: "u-test", authorName: "Test Author" } }, { type: "paragraph" }] }));
-  await page.locator(".cn-prose > p:last-child, .cn-prose > :last-child").last().click();
+  await page.locator(".ui-prose > p:last-child, .ui-prose > :last-child").last().click();
 };
-const ed = (page: Page) => page.locator(".cn-prose");
+const ed = (page: Page) => page.locator(".ui-prose");
 
 test("slash menu inserts a heading, filtered by query", async ({ page }) => {
   await open(page);
@@ -72,7 +72,7 @@ test("table: insert, 7-color cell backgrounds, merge", async ({ page }) => {
 
 test("code block languages: latex, csv, markdown, mermaid", async ({ page }) => {
   await open(page);
-  for (const [cmd, probe] of [["/formula", ".cn-preview .katex"], ["/csv", ".cn-preview table td"], ["/markdown", ".cn-md li"], ["/mermaid", ".cn-preview svg"]] as const) {
+  for (const [cmd, probe] of [["/formula", ".ui-preview .katex"], ["/csv", ".ui-preview table td"], ["/markdown", ".ui-md li"], ["/mermaid", ".ui-preview svg"]] as const) {
     await page.keyboard.type(cmd);
     await page.keyboard.press("Enter");
     await expect(page.locator(probe).first()).toBeVisible({ timeout: 15000 });
@@ -85,7 +85,7 @@ test("links: unsafe hrefs are rejected, safe ones kept", async ({ page }) => {
   const r = await page.evaluate(() => {
     const e = (window as any).__editor;
     e.chain().focus("end").insertContent('<p><a href="javascript:alert(1)">bad</a> <a href="https://example.com">good</a> <a href="#plan">anchor</a></p>').run();
-    return [...document.querySelectorAll(".cn-prose a")].map((a) => a.getAttribute("href"));
+    return [...document.querySelectorAll(".ui-prose a")].map((a) => a.getAttribute("href"));
   });
   expect(r).not.toContain("javascript:alert(1)");
   expect(r).toContain("https://example.com");

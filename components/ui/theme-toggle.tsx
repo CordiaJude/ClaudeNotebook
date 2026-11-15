@@ -10,8 +10,8 @@ export function ThemeToggle() {
       aria-label="Toggle theme"
       onClick={() => applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark")}
     >
-      <span className="cn-show-light"><IconMoon /></span>
-      <span className="cn-show-dark"><IconSun /></span>
+      <span className="ui-show-light"><IconMoon /></span>
+      <span className="ui-show-dark"><IconSun /></span>
     </Button>
   );
 }

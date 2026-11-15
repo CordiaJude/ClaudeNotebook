@@ -1,4 +1,4 @@
-export const THEME_KEY = "cn-theme";
+export const THEME_KEY = "ui-theme";
 export type Theme = "light" | "dark" | "system";
 
 /** Runs before first paint. Sets data-theme from saved choice or system preference. */

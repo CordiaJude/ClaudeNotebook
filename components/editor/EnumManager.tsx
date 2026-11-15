@@ -24,9 +24,9 @@ export function EnumManager() {
       <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>Lists</Button>
       <ControlledDialog open={open} onOpenChange={setOpen} title="Dropdown lists" description="One list per column (Status, Owner…). Removing an option hides it; existing chips keep their value.">
         <div style={{ display: "grid", gap: 16, maxHeight: "60vh", overflowY: "auto" }}>
-          {ctx.enums.length === 0 ? <p className="cn-caption">No lists yet. Insert a dropdown with / to create one.</p> : null}
+          {ctx.enums.length === 0 ? <p className="ui-caption">No lists yet. Insert a dropdown with / to create one.</p> : null}
           {ctx.enums.map((e) => (
-            <section key={e.id} className="cn-card" aria-label={`List ${e.name}`}>
+            <section key={e.id} className="ui-card" aria-label={`List ${e.name}`}>
               <Input aria-label="List name" value={e.name} onChange={(ev) => patch(e.id, (x) => ({ ...x, name: ev.target.value }))} onBlur={() => save(e)} />
               {e.options.map((o, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, opacity: o.removed ? 0.5 : 1 }}>
@@ -37,7 +37,7 @@ export function EnumManager() {
               <Button variant="secondary" size="sm" style={{ justifySelf: "start" }} onClick={() => { const n = { ...e, options: [...e.options, { name: "New option" }] }; patch(e.id, () => n); void save(n); }}>Add option</Button>
             </section>
           ))}
-          {err ? <p role="alert" style={{ color: "var(--cn-danger)", margin: 0 }}>{err}</p> : null}
+          {err ? <p role="alert" style={{ color: "var(--color-danger)", margin: 0 }}>{err}</p> : null}
         </div>
       </ControlledDialog>
     </>

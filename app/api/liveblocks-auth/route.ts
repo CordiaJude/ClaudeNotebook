@@ -1,8 +1,10 @@
 import { Liveblocks } from "@liveblocks/node";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { TOKENS } from "@/lib/tokens.generated";
 
-const COLORS = ["#cbcadb", "#bcd1ca", "#ebc9b7", "#6a9bcc", "#629987", "#827dbd"];
+const C = TOKENS.color.light;
+const COLORS = [C["person-1"], C["person-2"], C["person-3"], C["person-4"], C["person-5"], C["person-6"]];
 const colorFor = (id: string) => COLORS[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]!;
 
 export async function POST(req: NextRequest) {

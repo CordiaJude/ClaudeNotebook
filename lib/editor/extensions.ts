@@ -25,7 +25,7 @@ const bgAttr = {
       return isCellColor(v) ? v : null;
     },
     renderHTML: (attrs: Record<string, unknown>) =>
-      isCellColor(attrs.background) ? { "data-bg": attrs.background, style: `background: var(--cn-cell-${attrs.background})` } : {},
+      isCellColor(attrs.background) ? { "data-bg": attrs.background, style: `background: var(--color-tint-${attrs.background})` } : {},
   },
 };
 const CellWithBg = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...bgAttr }; } });

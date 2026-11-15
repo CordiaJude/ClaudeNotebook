@@ -30,9 +30,9 @@ export function ChipPicker({ editor }: { editor: Editor }) {
     <div style={{ display: "grid", gap: 4 }}>
       {rows.length > 6 ? <Input aria-label="Filter" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} /> : null}
       {rows.filter((r) => r.label.toLowerCase().includes(q.toLowerCase())).map((r) => (
-        <button key={r.id} className="cn-item" style={{ border: 0, background: "none", font: "inherit", textAlign: "left" }} onClick={() => put(make(r))}>{r.label}</button>
+        <button key={r.id} className="ui-item" style={{ border: 0, background: "none", font: "inherit", textAlign: "left" }} onClick={() => put(make(r))}>{r.label}</button>
       ))}
-      {rows.length === 0 ? <p className="cn-caption">Nothing to pick yet.</p> : null}
+      {rows.length === 0 ? <p className="ui-caption">Nothing to pick yet.</p> : null}
     </div>
   );
 
@@ -60,16 +60,16 @@ export function ChipPicker({ editor }: { editor: Editor }) {
       {kind === "dropdown" ? (
         <div style={{ display: "grid", gap: 16 }}>
           <div>
-            <p className="cn-eyebrow" style={{ marginBottom: 4 }}>Existing lists</p>
+            <p className="ui-eyebrow" style={{ marginBottom: 4 }}>Existing lists</p>
             {list(ctx.enums.map((e) => ({ id: e.id, label: `${e.name} (${e.options.filter((o) => !o.removed).map((o) => o.name).join(", ")})` })), (r) => ({ type: "dropdownChip", attrs: { enumId: r.id, index: 0 } }))}
           </div>
           <div style={{ display: "grid", gap: 8 }}>
-            <p className="cn-eyebrow">New list</p>
+            <p className="ui-eyebrow">New list</p>
             <Input aria-label="List name" placeholder="Status" value={newName} onChange={(e) => setNewName(e.target.value)} />
             <Input aria-label="Options" placeholder="On track, At risk, Blocked" value={newOpts} onChange={(e) => setNewOpts(e.target.value)} />
             <Button variant="secondary" onClick={createEnum}>Create and insert</Button>
           </div>
-          {err ? <p role="alert" style={{ color: "var(--cn-danger)", margin: 0 }}>{err}</p> : null}
+          {err ? <p role="alert" style={{ color: "var(--color-danger)", margin: 0 }}>{err}</p> : null}
         </div>
       ) : null}
     </ControlledDialog>

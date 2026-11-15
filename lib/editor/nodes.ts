@@ -104,5 +104,5 @@ export const CommentMark = Mark.create({
   excludes: "",
   addAttributes: () => ({ threadId: { default: null, parseHTML: (el: HTMLElement) => el.getAttribute("data-thread"), renderHTML: (a: Record<string, unknown>) => (a.threadId ? { "data-thread": String(a.threadId) } : {}) } }),
   parseHTML: () => [{ tag: "span[data-thread]" }],
-  renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes, { class: "cn-hl-comment" }), 0],
+  renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes, { class: "ui-hl-comment" }), 0],
 });

@@ -41,35 +41,35 @@ export function AskPanel({ notebookId, tabId, canEdit, blank }: { notebookId: st
   };
 
   return (
-    <section className="cn-panel" aria-label="Ask Claude" style={{ width: "100%", minHeight: 0, height: "100%" }}>
-      <div className="cn-panel-head"><strong>Ask Claude</strong></div>
-      <div className="cn-msgs" role="log" aria-live="polite" aria-relevant="additions text" style={{ overflowY: "auto" }}>
+    <section className="ui-panel" aria-label="Ask Claude" style={{ width: "100%", minHeight: 0, height: "100%" }}>
+      <div className="ui-panel-head"><strong>Ask Claude</strong></div>
+      <div className="ui-msgs" role="log" aria-live="polite" aria-relevant="additions text" style={{ overflowY: "auto" }}>
         {a.messages.length === 0 ? (
           <div style={{ display: "grid", gap: 8 }}>
-            <p className="cn-caption" style={{ margin: 0 }}>{blank ? "This notebook is empty. What should it say?" : "Ask Claude to write, restructure or tighten this notebook."}</p>
-            {canEdit ? EXAMPLES.map((ex) => <button key={ex} className="cn-item" style={{ border: 0, background: "none", font: "inherit", textAlign: "left" }} onClick={() => { setDraft(ex); box.current?.focus(); }}>{ex}</button>) : <p className="cn-caption">You have view or comment access. Editing with Claude needs edit access.</p>}
+            <p className="ui-caption" style={{ margin: 0 }}>{blank ? "This notebook is empty. What should it say?" : "Ask Claude to write, restructure or tighten this notebook."}</p>
+            {canEdit ? EXAMPLES.map((ex) => <button key={ex} className="ui-item" style={{ border: 0, background: "none", font: "inherit", textAlign: "left" }} onClick={() => { setDraft(ex); box.current?.focus(); }}>{ex}</button>) : <p className="ui-caption">You have view or comment access. Editing with Claude needs edit access.</p>}
           </div>
         ) : null}
         {a.messages.map((m) => (
-          <div key={m.id} className={`cn-msg ${m.role === "user" ? "cn-msg--user" : m.role === "assistant" ? "cn-msg--claude" : ""}`} role={m.role === "error" ? "alert" : undefined}
-            style={m.role === "note" ? { color: "var(--cn-text-meta)", fontSize: 13, padding: "0 4px" } : m.role === "error" ? { color: "var(--cn-danger)", padding: "0 4px" } : undefined}>
+          <div key={m.id} className={`ui-msg ${m.role === "user" ? "ui-msg--user" : m.role === "assistant" ? "ui-msg--ai" : ""}`} role={m.role === "error" ? "alert" : undefined}
+            style={m.role === "note" ? { color: "var(--color-text-subtle)", fontSize: 13, padding: "0 4px" } : m.role === "error" ? { color: "var(--color-danger)", padding: "0 4px" } : undefined}>
             {m.role === "note" ? `· ${m.text}` : m.text}
           </div>
         ))}
         <div ref={end} />
       </div>
-      <div className="cn-composer">
+      <div className="ui-composer">
         {selection ? (
-          <div className="cn-card" style={{ padding: "6px 10px", fontSize: 13 }}>
-            <span className="cn-card-meta">About this selection</span>
+          <div className="ui-card" style={{ padding: "6px 10px", fontSize: 13 }}>
+            <span className="ui-card-meta">About this selection</span>
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>“{selection}”</span>
-            <button className="cn-btn cn-btn--ghost cn-btn--sm" style={{ justifySelf: "start" }} onClick={() => setSelection(null)}>Clear</button>
+            <button className="ui-btn ui-btn--ghost ui-btn--sm" style={{ justifySelf: "start" }} onClick={() => setSelection(null)}>Clear</button>
           </div>
         ) : null}
         <Textarea ref={box} aria-label="Message Claude" placeholder={canEdit ? "Ask Claude to write or edit…" : "Editing with Claude needs edit access"} value={draft} disabled={!canEdit}
           onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span className="cn-card-meta"><Kbd>⌘</Kbd> <Kbd>⇧</Kbd> <Kbd>K</Kbd></span>
+          <span className="ui-card-meta"><Kbd>⌘</Kbd> <Kbd>⇧</Kbd> <Kbd>K</Kbd></span>
           <span style={{ display: "flex", gap: 8 }}>
             {a.running ? <Button variant="secondary" size="sm" onClick={() => agentStore.stop()}><IconStop /> Stop</Button> : null}
             <Button size="sm" disabled={!draft.trim() || a.running || !canEdit} onClick={send}>{a.running ? "Working…" : "Send"}</Button>

@@ -22,8 +22,8 @@ export function MentionChipView({ node }: NodeViewProps) {
   return (
     <NodeViewWrapper as="span" {...chipProps} style={{ display: "inline" }}>
       {kind === "user"
-        ? <span className="cn-chip" data-kind="user">@{text}</span>
-        : <button type="button" className="cn-chip" data-kind={kind} onClick={go} aria-label={`Open ${kind}: ${text}`}>↗ {text}</button>}
+        ? <span className="ui-chip" data-kind="user">@{text}</span>
+        : <button type="button" className="ui-chip" data-kind={kind} onClick={go} aria-label={`Open ${kind}: ${text}`}>↗ {text}</button>}
     </NodeViewWrapper>
   );
 }
@@ -31,11 +31,11 @@ export function MentionChipView({ node }: NodeViewProps) {
 export function DateChipView({ node, updateAttributes }: NodeViewProps) {
   const { canEdit } = useNotebook();
   const value = (node.attrs.value as string | null) ?? "";
-  const chip = <span className="cn-chip" data-chip-date>{value || "Pick a date"}</span>;
+  const chip = <span className="ui-chip" data-chip-date>{value || "Pick a date"}</span>;
   return (
     <NodeViewWrapper as="span" {...chipProps} style={{ display: "inline" }}>
       {canEdit ? (
-        <Popover trigger={<button type="button" className="cn-chip" aria-label={`Date ${value || "not set"}. Change`}>{value || "Pick a date"}</button>}>
+        <Popover trigger={<button type="button" className="ui-chip" aria-label={`Date ${value || "not set"}. Change`}>{value || "Pick a date"}</button>}>
           <Input type="date" aria-label="Date" value={value} onChange={(e) => updateAttributes({ value: e.target.value || null })} />
         </Popover>
       ) : chip}
@@ -53,8 +53,8 @@ export function DropdownChipView({ node, updateAttributes }: NodeViewProps) {
   return (
     <NodeViewWrapper as="span" {...chipProps} style={{ display: "inline" }}>
       {canEdit && en
-        ? <Menu trigger={<button type="button" className="cn-chip" aria-label={`${en.name}: ${label}`} data-enum={en.name}>{label} ▾</button>} items={items} />
-        : <span className="cn-chip">{label}</span>}
+        ? <Menu trigger={<button type="button" className="ui-chip" aria-label={`${en.name}: ${label}`} data-enum={en.name}>{label} ▾</button>} items={items} />
+        : <span className="ui-chip">{label}</span>}
     </NodeViewWrapper>
   );
 }
@@ -62,10 +62,10 @@ export function DropdownChipView({ node, updateAttributes }: NodeViewProps) {
 export function BylineView({ node }: NodeViewProps) {
   const { asof, authorName } = node.attrs as { asof: string | null; authorName: string | null };
   return (
-    <NodeViewWrapper className="cn-byline" {...chipProps}>
-      <span className="cn-chip" data-byline-date>{asof ?? "—"}</span>
+    <NodeViewWrapper className="ui-byline" {...chipProps}>
+      <span className="ui-chip" data-byline-date>{asof ?? "—"}</span>
       <span aria-hidden> · </span>
-      <span className="cn-chip" data-byline-author>@{authorName ?? "Unknown"}</span>
+      <span className="ui-chip" data-byline-author>@{authorName ?? "Unknown"}</span>
     </NodeViewWrapper>
   );
 }
@@ -80,11 +80,11 @@ export function EmbedView({ node, updateAttributes }: NodeViewProps) {
   const caption = String(node.attrs.caption ?? "");
   return (
     <NodeViewWrapper {...chipProps}>
-      <figure className="cn-embed" aria-label={caption || "Embedded chart or diagram"}>
-        <div className="cn-embed-body cn-caption">Chart or diagram (rendering arrives with widgets)</div>
+      <figure className="ui-embed" aria-label={caption || "Embedded chart or diagram"}>
+        <div className="ui-embed-body ui-caption">Chart or diagram (rendering arrives with widgets)</div>
         {canEdit
-          ? <input className="cn-embed-caption" aria-label="Caption" value={cap ?? caption} placeholder="Caption / source" onChange={(e) => setCap(e.target.value)} onBlur={() => { if (cap !== null) updateAttributes({ caption: cap }); setCap(null); }} />
-          : <figcaption className="cn-caption">{caption}</figcaption>}
+          ? <input className="ui-embed-caption" aria-label="Caption" value={cap ?? caption} placeholder="Caption / source" onChange={(e) => setCap(e.target.value)} onBlur={() => { if (cap !== null) updateAttributes({ caption: cap }); setCap(null); }} />
+          : <figcaption className="ui-caption">{caption}</figcaption>}
       </figure>
     </NodeViewWrapper>
   );

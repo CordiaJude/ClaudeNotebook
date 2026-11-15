@@ -12,7 +12,7 @@ function Latex({ src }: { src: string }) {
   useEffect(() => {
     if (ref.current) katex.render(src, ref.current, { displayMode: true, throwOnError: false, trust: false, output: "htmlAndMathml" });
   }, [src]);
-  return <div ref={ref} className="cn-preview" aria-label="Rendered formula" />;
+  return <div ref={ref} className="ui-preview" aria-label="Rendered formula" />;
 }
 
 function Mermaid({ src }: { src: string }) {
@@ -40,8 +40,8 @@ function Mermaid({ src }: { src: string }) {
   }, [src, id]);
   return (
     <>
-      <div ref={ref} className="cn-preview" role="img" aria-label="Rendered diagram" />
-      {err ? <div className="cn-caption" role="status" style={{ color: "var(--cn-danger)" }}>Diagram error: {err}</div> : null}
+      <div ref={ref} className="ui-preview" role="img" aria-label="Rendered diagram" />
+      {err ? <div className="ui-caption" role="status" style={{ color: "var(--color-danger)" }}>Diagram error: {err}</div> : null}
     </>
   );
 }
@@ -51,8 +51,8 @@ function Csv({ src }: { src: string }) {
   if (rows.length === 0) return null;
   const [head, ...body] = rows;
   return (
-    <div className="cn-preview" style={{ overflowX: "auto" }}>
-      <table className="cn-table" aria-label="CSV data (read-only)">
+    <div className="ui-preview" style={{ overflowX: "auto" }}>
+      <table className="ui-table" aria-label="CSV data (read-only)">
         <thead><tr>{head!.map((c, i) => <th key={i}>{c}</th>)}</tr></thead>
         <tbody>{body.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
       </table>
@@ -65,8 +65,8 @@ export function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps)
   const text = node.textContent;
   const editable = editor.isEditable;
   return (
-    <NodeViewWrapper className="cn-codeblock" data-lang={lang || undefined}>
-      <div className="cn-codeblock-bar" contentEditable={false}>
+    <NodeViewWrapper className="ui-codeblock" data-lang={lang || undefined}>
+      <div className="ui-codeblock-bar" contentEditable={false}>
         <select aria-label="Code language" value={lang} disabled={!editable} onChange={(e) => updateAttributes({ language: e.target.value || null })}>
           <option value="">plain text</option>
           {CODE_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -77,7 +77,7 @@ export function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps)
           {lang === "latex" ? <Latex src={text} /> : null}
           {lang === "mermaid" ? <Mermaid src={text} /> : null}
           {lang === "csv" ? <Csv src={text} /> : null}
-          {lang === "markdown" ? <div className="cn-preview cn-md"><ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown></div> : null}
+          {lang === "markdown" ? <div className="ui-preview ui-md"><ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown></div> : null}
         </div>
       ) : null}
       <pre><NodeViewContent<"code"> as="code" /></pre>

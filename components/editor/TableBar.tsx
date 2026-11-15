@@ -18,7 +18,7 @@ export function TableBar({ editor }: { editor: Editor }) {
   const c = () => editor.chain().focus();
   const setBg = (v: string | null) => c().setCellAttribute("background", v).run();
   return (
-    <div className="cn-toolbar" role="toolbar" aria-label="Table" style={{ flexWrap: "wrap" }}>
+    <div className="ui-toolbar" role="toolbar" aria-label="Table" style={{ flexWrap: "wrap" }}>
       <Button variant="ghost" size="sm" onClick={() => c().addRowAfter().run()}>+ Row</Button>
       <Button variant="ghost" size="sm" onClick={() => c().addColumnAfter().run()}>+ Column</Button>
       <Button variant="ghost" size="sm" onClick={() => c().deleteRow().run()}>− Row</Button>
@@ -27,9 +27,9 @@ export function TableBar({ editor }: { editor: Editor }) {
       <Button variant="ghost" size="sm" disabled={!s.canMerge} onClick={() => c().mergeCells().run()}>Merge</Button>
       <Button variant="ghost" size="sm" disabled={!s.canSplit} onClick={() => c().splitCell().run()}>Split</Button>
       <Popover trigger={<Button variant="ghost" size="sm">Cell color</Button>}>
-        <div className="cn-swatches" role="group" aria-label="Cell color">
+        <div className="ui-swatches" role="group" aria-label="Cell color">
           {CELL_COLORS.map((col) => (
-            <button key={col} className="cn-swatch" aria-label={col} aria-pressed={s.bg === col} style={{ background: `var(--cn-cell-${col})` }} onClick={() => setBg(s.bg === col ? null : col)} />
+            <button key={col} className="ui-swatch" aria-label={col} aria-pressed={s.bg === col} style={{ background: `var(--color-tint-${col})` }} onClick={() => setBg(s.bg === col ? null : col)} />
           ))}
         </div>
       </Popover>

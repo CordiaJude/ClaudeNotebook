@@ -20,14 +20,14 @@ export function NewWithClaude() {
     void agentStore.start({ message, onCreated: ({ notebookId }) => router.push(`/n/${notebookId}`) });
   };
   return (
-    <section aria-label="Write with Claude" className="cn-card" style={{ marginBottom: 32, padding: 16 }}>
-      <h2 className="cn-eyebrow">Write with Claude</h2>
+    <section aria-label="Write with Claude" className="ui-card" style={{ marginBottom: 32, padding: 16 }}>
+      <h2 className="ui-eyebrow">Write with Claude</h2>
       <Textarea aria-label="What should Claude write?" placeholder="e.g. Write a one-page plan for our Q1 launch" value={text} onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); go(); } }} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <Button disabled={!text.trim() || a.running} onClick={go}>{a.running ? "Claude is starting…" : "Write it"}</Button>
         {a.running ? <Button variant="secondary" onClick={() => agentStore.stop()}><IconStop /> Stop</Button> : null}
-        {lastNote ? <span className="cn-caption" role={lastNote.role === "error" ? "alert" : "status"} style={{ color: lastNote.role === "error" ? "var(--cn-danger)" : undefined }}>{lastNote.text}</span> : null}
+        {lastNote ? <span className="ui-caption" role={lastNote.role === "error" ? "alert" : "status"} style={{ color: lastNote.role === "error" ? "var(--color-danger)" : undefined }}>{lastNote.text}</span> : null}
       </div>
     </section>
   );

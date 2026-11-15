@@ -27,20 +27,20 @@ export function Workspace(props: {
 
   return (
     <NotebookProvider value={ctx}>
-      <nav className="cn-tray" aria-label="Tabs">
+      <nav className="ui-tray" aria-label="Tabs">
         <TabTray notebookId={props.notebookId} tabs={props.tabs} currentId={props.currentTab.id} canEdit={canEdit} />
       </nav>
-      <main className="cn-paper-wrap">
-        <div className="cn-paper">
+      <main className="ui-paper-wrap">
+        <div className="ui-paper">
           <NotebookEditor key={props.currentTab.id} notebookId={props.notebookId} room={props.currentTab.liveblocks_room} role={props.role} initialContent={props.initialContent} syncsTitle={props.syncsTitle} />
         </div>
       </main>
-      <aside className="cn-rail" aria-label="Side panel" style={{ display: "grid", gridTemplateRows: "auto 1fr", gap: 12, minHeight: 0 }}>
+      <aside className="ui-rail" aria-label="Side panel" style={{ display: "grid", gridTemplateRows: "auto 1fr", gap: 12, minHeight: 0 }}>
         <Segmented label="Side panel" value={rail} onValueChange={setRail} options={[{ value: "ask", label: "Ask Claude" }, { value: "comments", label: "Comments" }]} />
         {rail === "ask" ? (
           <AskPanel notebookId={props.notebookId} tabId={props.currentTab.id} canEdit={canEdit} />
         ) : (
-          <div><p className="cn-eyebrow">Comments</p><p className="cn-caption">Threads on text, cells and the whole tab appear here.</p></div>
+          <div><p className="ui-eyebrow">Comments</p><p className="ui-caption">Threads on text, cells and the whole tab appear here.</p></div>
         )}
       </aside>
     </NotebookProvider>

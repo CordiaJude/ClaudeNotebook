@@ -12,13 +12,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test --trace off",
-    "eval:agent": "tsx scripts/agent-eval.ts"
+    "eval:agent": "tsx scripts/agent-eval.ts",
+    "tokens": "node scripts/build-tokens.mjs",
+    "tokens:check": "node scripts/build-tokens.mjs --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@fontsource-variable/source-serif-4": "^5.3.1",
+    "@fontsource-variable/newsreader": "^5.3.0",
     "@liveblocks/client": "^3.25.0",
     "@liveblocks/node": "^3.25.0",
     "@liveblocks/react": "^3.25.0",
@@ -54,6 +56,7 @@
     "fractional-indexing": "^4.0.0",
     "katex": "^0.19.1",
     "lowlight": "^3.3.0",
+    "lucide-react": "^1.73.0",
     "mermaid": "^12.3.0",
     "next": "^16.4.6",
     "papaparse": "^5.7.1",

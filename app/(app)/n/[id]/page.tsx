@@ -37,10 +37,10 @@ export default async function NotebookPage({ params, searchParams }: { params: P
   const initialContent = isFirst && t ? seedContent(t, author) : blankTabContent(currentTab.name, author);
 
   return (
-    <div className="cn-shell">
-      <header className="cn-topbar">
+    <div className="ui-shell">
+      <header className="ui-topbar">
         <Link href="/notebooks" style={{ color: "inherit", textDecoration: "none" }} aria-label="All notebooks"><Wordmark size={18} /></Link>
-        <span className="cn-h3" style={{ flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nb.title}</span>
+        <span className="ui-h3" style={{ flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nb.title}</span>
         <ThemeToggle />
       </header>
       <Workspace

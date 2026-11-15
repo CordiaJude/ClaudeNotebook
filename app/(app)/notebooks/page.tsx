@@ -18,29 +18,29 @@ export default async function NotebooksPage() {
 
   return (
     <main>
-      <header className="cn-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 72 }}>
+      <header className="ui-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 72 }}>
         <Link href="/notebooks" style={{ color: "inherit", textDecoration: "none" }}><Wordmark /></Link>
         <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span className="cn-caption">{auth.user?.email}</span>
+          <span className="ui-caption">{auth.user?.email}</span>
           <ThemeToggle />
           <form action="/auth/signout" method="post"><Button variant="ghost" size="sm" type="submit">Sign out</Button></form>
         </span>
       </header>
-      <div className="cn-section" style={{ padding: "32px 16px 96px" }}>
-        <h1 className="cn-h-title" style={{ margin: "0 0 24px" }}>Notebooks</h1>
+      <div className="ui-section" style={{ padding: "32px 16px 96px" }}>
+        <h1 className="ui-h-title" style={{ margin: "0 0 24px" }}>Notebooks</h1>
         <NewWithClaude />
         <section aria-label="New notebook" style={{ marginBottom: 48 }}>
-          <h2 className="cn-eyebrow" style={{ marginBottom: 12 }}>Start from a template</h2>
-          <div className="cn-swatch-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))" }}>
+          <h2 className="ui-eyebrow" style={{ marginBottom: 12 }}>Start from a template</h2>
+          <div className="ui-swatch-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))" }}>
             {TEMPLATES.map((t) => (
               <form key={t.key} action={createNotebook}>
                 <input type="hidden" name="template" value={t.key} />
-                <button className="cn-template" style={{ width: "100%" }}><div className="cn-h3">{t.name}</div><div className="cn-caption">{t.blurb}</div></button>
+                <button className="ui-template" style={{ width: "100%" }}><div className="ui-h3">{t.name}</div><div className="ui-caption">{t.blurb}</div></button>
               </form>
             ))}
           </div>
         </section>
-        {error ? <p role="alert" style={{ color: "var(--cn-danger)" }}>Could not load notebooks: {error.message}</p> : null}
+        {error ? <p role="alert" style={{ color: "var(--color-danger)" }}>Could not load notebooks: {error.message}</p> : null}
         <NotebookSearch notebooks={notebooks ?? []} />
       </div>
     </main>

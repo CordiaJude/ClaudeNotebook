@@ -3,19 +3,19 @@ import { expect, test, type Page } from "@playwright/test";
 const BYLINE = { type: "byline", attrs: { asof: "2026-11-12", authorId: "u-test", authorName: "Test Author" } };
 const open = async (page: Page, body: unknown[] = [{ type: "paragraph" }]) => {
   await page.goto("/design/editor");
-  await page.locator(".cn-prose").waitFor();
+  await page.locator(".ui-prose").waitFor();
   await page.evaluate(([b, by]) => (window as any).__editor.commands.setContent({ type: "doc", content: [{ type: "title", content: [{ type: "text", text: "Doc" }] }, by, ...(b as any[])] }), [body, BYLINE] as const);
-  await page.locator(".cn-prose > p:last-child, .cn-prose > :last-child").last().click();
+  await page.locator(".ui-prose > p:last-child, .ui-prose > :last-child").last().click();
 };
-const ed = (page: Page) => page.locator(".cn-prose");
+const ed = (page: Page) => page.locator(".ui-prose");
 const names = (page: Page) => page.evaluate(() => { const n: string[] = []; (window as any).__editor.state.doc.forEach((x: any) => n.push(x.type.name)); return n; });
 
 test("F05: title + byline (date chip · author chip), nothing else on the line", async ({ page }) => {
   await open(page);
   await expect(ed(page).locator("h1[data-title]")).toHaveText("Doc");
-  const by = ed(page).locator(".cn-byline");
+  const by = ed(page).locator(".ui-byline");
   await expect(by).toHaveText("2026-11-12 · @Test Author");
-  await expect(by.locator(".cn-chip")).toHaveCount(2);
+  await expect(by.locator(".ui-chip")).toHaveCount(2);
 });
 
 test("invariants: select-all + delete keeps title, byline, one block", async ({ page }) => {
@@ -25,7 +25,7 @@ test("invariants: select-all + delete keeps title, byline, one block", async ({ 
   const n = await names(page);
   expect(n.slice(0, 2)).toEqual(["title", "byline"]);
   expect(n.length).toBeGreaterThanOrEqual(3);
-  await expect(ed(page).locator(".cn-byline")).toContainText("@Test Author"); // refilled by the plugin
+  await expect(ed(page).locator(".ui-byline")).toContainText("@Test Author"); // refilled by the plugin
 });
 
 test("invariants: Backspace at the start of the body does not delete the byline", async ({ page }) => {
@@ -79,11 +79,11 @@ test("F30: date chip is editable", async ({ page }) => {
   await page.keyboard.press("Enter");
   await page.getByRole("dialog").getByLabel("Date").fill("2026-12-01");
   await page.getByRole("button", { name: "Insert date" }).click();
-  const chip = ed(page).locator("button.cn-chip", { hasText: "2026-12-01" });
+  const chip = ed(page).locator("button.ui-chip", { hasText: "2026-12-01" });
   await expect(chip).toBeVisible();
   await chip.click();
   await page.getByRole("textbox", { name: "Date" }).fill("2027-01-15");
-  await expect(ed(page).locator("button.cn-chip", { hasText: "2027-01-15" })).toBeVisible();
+  await expect(ed(page).locator("button.ui-chip", { hasText: "2027-01-15" })).toBeVisible();
 });
 
 test("F23/F30/F31: dropdown chip in a table cell; value stored as enumId + index; removed options hidden", async ({ page }) => {
@@ -93,7 +93,7 @@ test("F23/F30/F31: dropdown chip in a table cell; value stored as enumId + index
       { type: "tableRow", content: [{ type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Vendor" }] }] }, { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "dropdownChip", attrs: { enumId: "e-status", index: 0 } }] }] }] },
     ] },
   ]);
-  const chip = ed(page).locator("td button.cn-chip");
+  const chip = ed(page).locator("td button.ui-chip");
   await expect(chip).toContainText("On track");
   await chip.click();
   const opts = page.getByRole("menuitem");
@@ -106,12 +106,12 @@ test("F23/F30/F31: dropdown chip in a table cell; value stored as enumId + index
 
 test("F31: dropdown chip pointing at a removed option still shows its value", async ({ page }) => {
   await open(page, [{ type: "paragraph", content: [{ type: "dropdownChip", attrs: { enumId: "e-status", index: 3 } }] }]);
-  await expect(ed(page).locator("button.cn-chip")).toContainText("Old (removed)");
+  await expect(ed(page).locator("button.ui-chip")).toContainText("Old (removed)");
 });
 
 test("F40: pending block shows intent as a skeleton; a human can delete it", async ({ page }) => {
   await open(page, [{ type: "pending", attrs: { intent: "Risks: what could slip and the fallback" } }, { type: "paragraph" }]);
-  const pb = ed(page).locator(".cn-pending");
+  const pb = ed(page).locator(".ui-pending");
   await expect(pb).toBeVisible();
   await expect(pb).toContainText("Risks: what could slip and the fallback");
   await expect(pb).toHaveCSS("border-top-style", "dashed");

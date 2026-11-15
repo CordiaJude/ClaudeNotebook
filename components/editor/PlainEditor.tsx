@@ -29,15 +29,15 @@ export function PlainEditor() {
     immediatelyRender: false,
     extensions: buildExtensions({ onSlash: setSlash, history: true, getAuthor: () => AUTHOR }),
     content: seedContent("plan", AUTHOR),
-    editorProps: { attributes: { class: "cn-prose", role: "textbox", "aria-multiline": "true", "aria-label": "Document" } },
+    editorProps: { attributes: { class: "ui-prose", role: "textbox", "aria-multiline": "true", "aria-label": "Document" } },
   });
   useEffect(() => { (window as unknown as { __editor: unknown }).__editor = editor; }, [editor]);
   if (!editor) return null;
   return (
     <NotebookProvider value={ctx}>
-      <div className="cn-paper" style={{ maxWidth: 880, margin: "0 auto" }}>
-        <div className="cn-editor-chrome"><TableBar editor={editor} /></div>
-        <div className="cn-doc"><EditorContent editor={editor} /></div>
+      <div className="ui-paper" style={{ maxWidth: 880, margin: "0 auto" }}>
+        <div className="ui-editor-chrome"><TableBar editor={editor} /></div>
+        <div className="ui-doc"><EditorContent editor={editor} /></div>
         <BubbleToolbar editor={editor} />
         <SlashMenu state={slash} />
         <ChipPicker editor={editor} />

@@ -39,8 +39,8 @@ export function LoginForm({ next }: { next?: string }) {
       <Input aria-label="Name" autoComplete="name" spellCheck={false} placeholder="Your name (this is your username)" value={username} onChange={(e) => setUsername(e.target.value)} />
       <Input type="password" aria-label="Password" autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder={mode === "signup" ? "Password (8+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
       <Button type="submit" disabled={busy}>{busy ? "One moment…" : mode === "signup" ? "Create account" : "Sign in"}</Button>
-      {error ? <p role="alert" style={{ color: "var(--cn-danger)", margin: 0 }}>{error}</p> : null}
-      {mode === "signup" ? <p className="cn-caption" style={{ margin: 0 }}>There is no email on file, so a forgotten password cannot be reset. Keep it somewhere safe.</p> : null}
+      {error ? <p role="alert" style={{ color: "var(--color-danger)", margin: 0 }}>{error}</p> : null}
+      {mode === "signup" ? <p className="ui-caption" style={{ margin: 0 }}>There is no email on file, so a forgotten password cannot be reset. Keep it somewhere safe.</p> : null}
     </form>
   );
 }

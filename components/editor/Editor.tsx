@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor as TiptapEditor, type JSONContent } from "@tiptap/react";
 import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useOthers } from "@liveblocks/react";
-import { ClaudePresencePill } from "@/components/doc/parts";
+import { AiPresencePill } from "@/components/doc/parts";
 import { useAgent } from "./AskPanel";
 import { useLiveblocksExtension } from "@liveblocks/react-tiptap";
 import { buildExtensions } from "@/lib/editor/extensions";
@@ -27,7 +27,7 @@ function ClaudePill() {
   const remote = useOthers((others) => others.find((o) => o.id === "agent:claude")?.presence?.editing ?? null);
   const section = run.running ? run.section : remote;
   if (!run.running && !remote) return null;
-  return <ClaudePresencePill section={section ?? "working"} />;
+  return <AiPresencePill section={section ?? "working"} />;
 }
 
 function Presence() {
@@ -75,7 +75,7 @@ function EditorBody({ notebookId, role, initialContent, syncsTitle }: { notebook
     editable: canEdit,
     extensions: [liveblocks, ...buildExtensions({ onSlash: setSlash, getAuthor: () => author })],
     editorProps: {
-      attributes: { class: "cn-prose", role: "textbox", "aria-multiline": "true", "aria-label": "Document" },
+      attributes: { class: "ui-prose", role: "textbox", "aria-multiline": "true", "aria-label": "Document" },
       handlePaste(view, event) {
         const files = [...(event.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
         if (files.length) { event.preventDefault(); void insertImages(files, editorRef.current!); return true; }
@@ -102,7 +102,7 @@ function EditorBody({ notebookId, role, initialContent, syncsTitle }: { notebook
         if (!a || !href) return false;
         if (href.startsWith("#")) {
           event.preventDefault();
-          const el = [...document.querySelectorAll<HTMLElement>(".cn-prose h1,.cn-prose h2,.cn-prose h3")].find((h) => slugify(h.textContent ?? "") === href.slice(1));
+          const el = [...document.querySelectorAll<HTMLElement>(".ui-prose h1,.ui-prose h2,.ui-prose h3")].find((h) => slugify(h.textContent ?? "") === href.slice(1));
           el?.scrollIntoView({ behavior: "smooth", block: "start" });
           return true;
         }
@@ -125,15 +125,15 @@ function EditorBody({ notebookId, role, initialContent, syncsTitle }: { notebook
   if (!editor) return <Skeleton h={200} />;
   return (
     <>
-      <div className="cn-editor-chrome">
+      <div className="ui-editor-chrome">
         <TableBar editor={editor} />
         <EnumManager />
         <span style={{ flex: 1 }} />
         <ClaudePill />
         <Presence />
-        {!canEdit ? <span className="cn-badge">{role === "commenter" ? "Comment only" : "View only"}</span> : null}
+        {!canEdit ? <span className="ui-badge">{role === "commenter" ? "Comment only" : "View only"}</span> : null}
       </div>
-      <div className="cn-doc"><EditorContent editor={editor} /></div>
+      <div className="ui-doc"><EditorContent editor={editor} /></div>
       {canEdit ? <BubbleToolbar editor={editor} /> : null}
       <SlashMenu state={slash} />
       <ChipPicker editor={editor} />
