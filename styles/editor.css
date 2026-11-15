@@ -39,6 +39,9 @@ button.ui-ws-title:hover { background: var(--color-sunken); }
 .ui-prose h2 { font-family: var(--font-serif); font-size: var(--text-xl); line-height: var(--text-xl--line-height); font-weight: 550; margin: 32px 0 8px; }
 .ui-prose h3 { font-family: var(--font-serif); font-size: var(--text-lg); line-height: var(--text-lg--line-height); font-weight: 600; margin: 24px 0 4px; }
 .ui-prose ul, .ui-prose ol { padding-left: 24px; margin: 12px 0; }
+.ui-prose ul { list-style: disc; }
+.ui-prose ol { list-style: decimal; }
+.ui-prose ul ul { list-style: circle; }
 .ui-prose li > p { margin: 4px 0; }
 .ui-prose ul[data-type="taskList"] { list-style: none; padding-left: 4px; }
 .ui-prose ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }

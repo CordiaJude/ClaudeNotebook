@@ -45,7 +45,7 @@ export function planAdd(rows: TabRow[], id: string, parent: string | null = null
 export function planDelete(rows: TabRow[], id: string): Plan {
   const t = rows.find((r) => r.id === id);
   if (!t) return fail("tab_none", "That tab no longer exists.");
-  if (rows.length <= 1) return fail("last_tab", "A notebook needs at least one tab.");
+  if (rows.length <= 1) return fail("last_tab", "A document needs at least one tab.");
   const kids = children(rows, id);
   const updates: KeyUpdate[] = [];
   if (kids.length) {

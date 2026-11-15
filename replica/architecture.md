@@ -1,7 +1,9 @@
 # Architecture: Draftly (an AI-native docs + slides editor)
 
 Step 1 of the Replica pack (`/replica-architect`). Inputs: `replica/recon.md`, `replica/features.csv`, `CLAUDE.md`, `PROMPT.md`.
-Outputs: this file and `replica/schema.sql`. Date: 2026-11-14. Status: **waiting for approval**.
+Outputs: this file and `replica/schema.sql`. Date: 2026-11-14. Status: **approved, option B**.
+
+Seven things changed while building. They are listed in `replica/build-log.md` under "Changes from the plan"; the largest is that the old operation engine was replaced rather than kept.
 
 ## 0. What I found before planning
 

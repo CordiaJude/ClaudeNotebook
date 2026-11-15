@@ -76,7 +76,7 @@ export function Workspace({ artifact, tab, messages, demo, firstPrompt }: { arti
           <Link href="/library" className="ui-btn ui-btn--ghost ui-btn--sm" aria-label="Back to the library"><Mark size={18} /> <span className="ui-ws-wide">Library</span></Link>
           <Title artifact={artifact} />
           {artifact.role !== "owner" ? <Badge>{artifact.role === "editor" ? "Can edit" : artifact.role === "commenter" ? "Can comment" : "View only"}</Badge> : null}
-          {state ? <span className="ui-card-meta" role="status" aria-live="polite">{state}</span> : null}
+          {state ? <span className="ui-card-meta ui-ws-wide" role="status" aria-live="polite">{state}</span> : null}
           <span className="ui-ws-wide"><Working /></span>
           <span style={{ flex: 1 }} />
           <div className="ui-ws-switch"><Segmented label="Show" value={pane} onValueChange={setPane} options={[{ value: "chat", label: "Chat" }, { value: "doc", label: artifact.kind === "doc" ? "Doc" : "Slides" }]} /></div>
