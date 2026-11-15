@@ -171,7 +171,7 @@ export function PromptBox({ placeholder, withOutput, hero, disabled, sending, ru
   const [v, setV] = useState(defaultValue);
   const [kind, setKind] = useState<Kind>("doc");
   const hint = useId();
-  const send = () => { if (v.trim() && !disabled && !sending) onSubmit?.(v.trim(), kind); };
+  const send = () => { if (v.trim() && !disabled && !sending && !running) { onSubmit?.(v.trim(), kind); setV(""); } };
   return (
     <form className={`ui-prompt ${hero ? "ui-prompt--hero" : ""}`} data-disabled={disabled ? "" : undefined} onSubmit={(e) => { e.preventDefault(); send(); }}>
       <textarea aria-label="Message" aria-describedby={hint} rows={hero ? 2 : 1} placeholder={placeholder ?? "Ask for a change"} value={v} disabled={disabled || sending}
@@ -234,11 +234,11 @@ export function ChatPanel({ title, children, footer }: { title: string; children
 }
 
 /* ---------- Library ---------- */
-export function LibraryCard({ kind, title, meta, shared, href = "#" }: { kind: Kind; title: string; meta: string; shared?: string; href?: string }) {
+export function LibraryCard({ kind, title, meta, shared, preview, href = "#" }: { kind: Kind; title: string; meta: string; shared?: string; preview?: string; href?: string }) {
   return (
     <a className="ui-libcard" href={href}>
       <div className={`ui-libcard-thumb ${kind === "deck" ? "ui-libcard-thumb--deck" : ""}`} aria-hidden>
-        {kind === "doc" ? <><Skeleton w="55%" h={10} style={{ animation: "none" }} /><Skeleton w="92%" h={6} style={{ animation: "none" }} /><Skeleton w="84%" h={6} style={{ animation: "none" }} /><Skeleton w="70%" h={6} style={{ animation: "none" }} /></>
+        {kind === "doc" && preview ? <><div className="ui-serif" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>{title}</div><div className="ui-libcard-preview">{preview}</div></> : kind === "doc" ? <><Skeleton w="55%" h={10} style={{ animation: "none" }} /><Skeleton w="92%" h={6} style={{ animation: "none" }} /><Skeleton w="84%" h={6} style={{ animation: "none" }} /><Skeleton w="70%" h={6} style={{ animation: "none" }} /></>
           : <><div className="ui-serif" style={{ fontSize: 15, fontWeight: 550, color: "var(--color-text)" }}>{title}</div><Skeleton w={64} h={5} style={{ animation: "none", background: "var(--color-accent)" }} /></>}
       </div>
       <div style={{ display: "grid", gap: 2, padding: "0 4px 4px" }}>

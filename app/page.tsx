@@ -3,23 +3,19 @@ import { BRAND } from "@/lib/brand";
 import { Wordmark } from "@/components/brand/Mark";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { createClient } from "@/lib/supabase/server";
+import { currentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function Landing() {
-  let signedIn = false;
-  try {
-    const { data } = await (await createClient()).auth.getUser();
-    signedIn = !!data.user;
-  } catch { /* env not configured: show the signed-out page */ }
+  const signedIn = !!(await currentUser());
   return (
     <>
       <header className="ui-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 72 }}>
         <Wordmark />
         <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <ThemeToggle />
-          <Button asChild variant="secondary" size="sm"><Link href={signedIn ? "/notebooks" : "/login"}>{signedIn ? "Open notebooks" : "Sign in"}</Link></Button>
+          <Button asChild variant="secondary" size="sm"><Link href={signedIn ? "/library" : "/login"}>{signedIn ? "Open your library" : "Sign in"}</Link></Button>
         </span>
       </header>
       <main className="ui-section" style={{ padding: "96px 24px 128px" }}>
@@ -27,7 +23,7 @@ export default async function Landing() {
         <h1 className="ui-h-display" style={{ margin: "16px 0 24px", maxWidth: 820 }}>Say what you need. Watch the draft appear. Make it yours.</h1>
         <p style={{ fontSize: 20, lineHeight: 1.5, maxWidth: 560, color: "var(--color-text-muted)" }}>{BRAND.tagline} Ask in plain words, answer a question or two, then edit the result by hand or by asking again.</p>
         <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-          <Button asChild><Link href={signedIn ? "/notebooks" : "/login"}>{signedIn ? "Open your notebooks" : "Get started"}</Link></Button>
+          <Button asChild><Link href={signedIn ? "/library" : "/login"}>{signedIn ? "Open your library" : "Get started"}</Link></Button>
           <Button asChild variant="secondary"><Link href="/design">Design system</Link></Button>
         </div>
       </main>

@@ -4,30 +4,17 @@ import Suggestion from "@tiptap/suggestion";
 export type SlashItem = { id: string; label: string; hint: string; keywords: string[]; run: (editor: Editor, range: Range) => void };
 export type SlashState = { items: SlashItem[]; index: number; rect: DOMRect | null; select: (i: number) => void };
 
-const code = (lang: string, text = "") => (editor: Editor, range: Range) =>
-  editor.chain().focus().deleteRange(range).insertContent({ type: "codeBlock", attrs: { language: lang }, content: text ? [{ type: "text", text }] : undefined }).run();
-
 export const SLASH_ITEMS: SlashItem[] = [
-  { id: "h1", label: "Heading 1", hint: "Large section title", keywords: ["title", "h1"], run: (e, r) => e.chain().focus().deleteRange(r).setNode("heading", { level: 1 }).run() },
+  { id: "h1", label: "Heading 1", hint: "Big section heading", keywords: ["title", "h1"], run: (e, r) => e.chain().focus().deleteRange(r).setNode("heading", { level: 1 }).run() },
   { id: "h2", label: "Heading 2", hint: "Section heading", keywords: ["h2", "subtitle"], run: (e, r) => e.chain().focus().deleteRange(r).setNode("heading", { level: 2 }).run() },
   { id: "h3", label: "Heading 3", hint: "Small heading", keywords: ["h3"], run: (e, r) => e.chain().focus().deleteRange(r).setNode("heading", { level: 3 }).run() },
-  { id: "bullet", label: "Bullet list", hint: "Unordered items", keywords: ["ul", "list"], run: (e, r) => e.chain().focus().deleteRange(r).toggleBulletList().run() },
-  { id: "ordered", label: "Numbered list", hint: "Ordered steps", keywords: ["ol", "list", "numbers"], run: (e, r) => e.chain().focus().deleteRange(r).toggleOrderedList().run() },
-  { id: "task", label: "Task list", hint: "Checkable items", keywords: ["todo", "checkbox"], run: (e, r) => e.chain().focus().deleteRange(r).toggleTaskList().run() },
-  { id: "quote", label: "Quote", hint: "Blockquote", keywords: ["blockquote"], run: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
-  { id: "divider", label: "Divider", hint: "Horizontal rule", keywords: ["hr", "line"], run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
+  { id: "bullet", label: "Bullet list", hint: "A list of points", keywords: ["ul", "list"], run: (e, r) => e.chain().focus().deleteRange(r).toggleBulletList().run() },
+  { id: "ordered", label: "Numbered list", hint: "Steps in order", keywords: ["ol", "list", "numbers"], run: (e, r) => e.chain().focus().deleteRange(r).toggleOrderedList().run() },
+  { id: "task", label: "Checklist", hint: "Items to tick off", keywords: ["todo", "checkbox", "task"], run: (e, r) => e.chain().focus().deleteRange(r).toggleTaskList().run() },
   { id: "table", label: "Table", hint: "Rows and columns", keywords: ["grid"], run: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  { id: "image", label: "Image", hint: "Upload a picture", keywords: ["photo", "upload"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:pick-image")); } },
-  { id: "mention", label: "Mention person", hint: "@ someone in this notebook", keywords: ["at", "user", "people"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:insert-chip", { detail: { kind: "user" } })); } },
-  { id: "tablink", label: "Link to tab", hint: "Chip pointing to another tab", keywords: ["tab", "mention"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:insert-chip", { detail: { kind: "tab" } })); } },
-  { id: "nblink", label: "Link to notebook", hint: "Chip pointing to a notebook", keywords: ["notebook", "mention"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:insert-chip", { detail: { kind: "notebook" } })); } },
-  { id: "date", label: "Date", hint: "A date someone may act on", keywords: ["deadline", "due"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:insert-chip", { detail: { kind: "date" } })); } },
-  { id: "dropdown", label: "Dropdown", hint: "Status-style value from a list", keywords: ["status", "enum", "select"], run: (e, r) => { e.chain().focus().deleteRange(r).run(); window.dispatchEvent(new CustomEvent("cn:insert-chip", { detail: { kind: "dropdown" } })); } },
-  { id: "code", label: "Code block", hint: "Syntax highlighted", keywords: ["snippet"], run: code("javascript") },
-  { id: "latex", label: "Formula (LaTeX)", hint: "Rendered display math", keywords: ["math", "katex", "equation"], run: code("latex", "E = mc^2") },
-  { id: "csv", label: "CSV data", hint: "Read-only grid", keywords: ["table", "data"], run: code("csv", "name,value\nA,1\nB,2") },
-  { id: "markdown", label: "Markdown exhibit", hint: "Rendered markdown", keywords: ["md"], run: code("markdown", "**Bold** and a list:\n\n- one\n- two") },
-  { id: "mermaid", label: "Mermaid diagram", hint: "Flowchart from text", keywords: ["diagram", "flow"], run: code("mermaid", "graph LR\n  A --> B") },
+  { id: "quote", label: "Quote", hint: "Set a passage apart", keywords: ["blockquote"], run: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
+  { id: "divider", label: "Divider", hint: "A line between sections", keywords: ["hr", "line", "rule"], run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
+  { id: "code", label: "Code", hint: "Monospaced block", keywords: ["snippet"], run: (e, r) => e.chain().focus().deleteRange(r).setNode("codeBlock").run() },
 ];
 
 export const filterSlash = (q: string) => {

@@ -142,6 +142,7 @@ textarea.ui-field { resize: vertical; min-height: 72px; }
 .ui-libcard:hover { border-color: var(--color-border-input); box-shadow: var(--shadow-md); }
 .ui-libcard-thumb { aspect-ratio: 16 / 10; border-radius: var(--radius-md); background: var(--color-surface); border: 1px solid var(--color-border-soft); padding: 14px 16px; display: grid; gap: 6px; align-content: start; overflow: hidden; }
 .ui-libcard-thumb--deck { background: var(--color-sunken); place-content: center; justify-items: center; text-align: center; }
+.ui-libcard-preview { font-size: 9px; line-height: 1.5; color: var(--color-text-subtle); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
 .ui-libcard-title { font-size: var(--text-ui); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-libcard-meta { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--color-text-subtle); }
 
@@ -246,3 +247,33 @@ textarea.ui-field { resize: vertical; min-height: 72px; }
 [data-theme="dark"] .ui-show-light { display: none; }
 [data-theme="dark"] .ui-show-dark { display: inline-flex; }
 .ui-show-light { display: inline-flex; }
+
+/* ---------- App chrome: header, library, sign-in ---------- */
+.ui-app-top { display: flex; align-items: center; gap: 16px; height: var(--layout-header-height); padding: 0 24px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); position: sticky; top: 0; z-index: 20; }
+.ui-app-nav { display: flex; gap: 4px; margin-left: 12px; }
+.ui-app-nav a { color: var(--color-text-muted); text-decoration: none; font-size: var(--text-ui); padding: 6px 10px; border-radius: var(--radius-sm); }
+.ui-app-nav a:hover { background: var(--color-sunken); color: var(--color-text); }
+.ui-app-user { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-ui); }
+.ui-lib { max-width: var(--layout-content-max); margin: 0 auto; padding: 40px 24px 96px; display: grid; gap: 48px; }
+.ui-lib-new { display: grid; gap: 20px; max-width: 720px; }
+.ui-lib-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+.ui-lib-templates .ui-template { width: 100%; height: 100%; }
+.ui-lib-list { display: grid; gap: 16px; }
+.ui-lib-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ui-lib-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ui-lib-search { position: relative; display: flex; align-items: center; }
+.ui-lib-search svg { position: absolute; left: 10px; color: var(--color-text-subtle); pointer-events: none; }
+.ui-lib-search .ui-field { padding-left: 32px; width: 220px; }
+.ui-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; list-style: none; margin: 0; padding: 0; }
+.ui-lib-item { position: relative; }
+.ui-lib-more { position: absolute; right: 12px; bottom: 12px; font-size: 18px; line-height: 1; }
+.ui-auth { min-height: 100dvh; display: grid; align-content: center; justify-items: center; gap: 24px; padding: 32px 16px; }
+.ui-auth-card { width: min(420px, 100%); padding: 28px; gap: 20px; border-radius: var(--radius-xl); }
+.ui-or { display: flex; align-items: center; gap: 12px; color: var(--color-text-subtle); font-size: var(--text-sm); }
+.ui-or::before, .ui-or::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+@media (max-width: 767px) {
+  .ui-app-top { padding: 0 12px; gap: 8px; }
+  .ui-app-nav { display: none; }
+  .ui-lib { padding: 24px 16px 64px; gap: 32px; }
+  .ui-lib-search .ui-field { width: 160px; }
+}

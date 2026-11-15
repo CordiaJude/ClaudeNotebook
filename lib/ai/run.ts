@@ -1,97 +1,207 @@
-import type Anthropic from "@anthropic-ai/sdk";
-import type { AgentEvent } from "./events";
-import { makeToolRunner, type NotebookBackend, type Role, type RoomStore, type RunState } from "./exec";
-import { runLoop, type AnthropicLike } from "./loop";
-import { HISTORY_TURNS, RUN_BUDGET_MS } from "./models";
-import { SYSTEM_PROMPT } from "./system-prompt";
-import { TOOLS } from "./tools";
+/* One AI request, start to finish: check the person may edit, count it, let the model work through tools,
+   stream progress, and leave a record that can be undone in one step. */
+import { dropUnwritten, undoAll, type UndoEntry } from "@/lib/doc/edit";
+import { isBlank, outline } from "@/lib/doc/read";
+import { describeSelection, resolveScope } from "@/lib/doc/range";
+import type { Scope } from "@/lib/doc/scope";
+import { docSchema } from "@/lib/doc/schema";
+import { loadYDoc, readDoc, writeDoc } from "@/lib/doc/ydoc";
+import { DataError, canEdit, type Data, type Message, type Tab, type User } from "@/lib/data/types";
+import type { RoomStore } from "@/lib/rooms/types";
+import { CHAT_SYSTEM, SELECTION_SYSTEM } from "./prompt";
+import { CHAT_TOOLS, SELECTION_TOOLS, runTool, type ToolCtx } from "./tools";
+import type { Block, Model, Msg, RunEvent } from "./types";
 
-export class HttpError extends Error {
-  constructor(public status: number, public code: string, message: string) { super(message); }
+export type Deps = { user: User; data: Data; rooms: RoomStore; model: Model; signal?: AbortSignal; today?: string };
+export type ChatRequest = { artifactId: string; message?: string; answers?: { messageId: string; values: Record<string, string> | "skipped" } };
+export const MAX_TURNS = 30;
+/** Runs in progress in this process, so a Stop request can reach them. */
+const g = globalThis as typeof globalThis & { __activeRuns?: Map<string, AbortController> };
+const active = (g.__activeRuns ??= new Map<string, AbortController>());
+/** Stop a run the person started. True when it was running here. The stream then ends by itself with what was kept. */
+export async function stopRun(runId: string, d: Pick<Deps, "user" | "data">): Promise<boolean> {
+  const run = await d.data.getRun(d.user.id, runId);
+  if (!run) throw new DataError("not_found", "That request was not found.");
+  const ctl = active.get(runId);
+  ctl?.abort();
+  return !!ctl;
+}
+export const MAX_MESSAGE = 8000;
+const NO_EDIT = "You can view this, not change it. Ask the owner for edit access to use AI here.";
+
+async function gate(d: Deps, artifactId: string): Promise<Tab> {
+  const found = await d.data.getArtifact(d.user.id, artifactId);
+  if (!found) throw new DataError("not_found", "That doc was not found, or it is not shared with you.");
+  if (!canEdit(found.artifact.role)) throw new DataError("forbidden", NO_EDIT);
+  if (found.artifact.kind !== "doc" || !found.tabs[0]) throw new DataError("invalid", "AI drafting for slides is not built yet.");
+  return found.tabs[0];
 }
 
-export type RunRequest = {
-  notebookId?: string; tabId?: string; trigger: "panel" | "selection";
-  message: string; selection?: string; history?: { role: "user" | "assistant"; text: string }[];
-};
-export type RunDeps = {
-  userId: string; displayName: string;
-  client: AnthropicLike | null; // null = ANTHROPIC_API_KEY missing
-  rooms: RoomStore; backend: NotebookBackend;
-  ledger: { tryStart(userId: string): Promise<boolean>; open(r: { userId: string; notebookId?: string; tabId?: string; trigger: string }): Promise<string>; close(id: string, status: "done" | "error" | "stopped", usage: { input: number; output: number }, section?: string): Promise<void> };
-  snapshot?(room: string): Promise<void>;
-  presence?(room: string, label: string | null): Promise<void>;
-  now?: () => number;
-  signal?: AbortSignal;
-};
-
-const MAX_MESSAGE = 8_000;
-const encoder = new TextEncoder();
-
-export function buildUserMessage(req: RunRequest, ctx: { name: string; today: string; tab?: { notebookId: string; tabId: string; name: string; role: Role; title?: string } }): string {
-  const open = ctx.tab ? `Open notebook: id ${ctx.tab.notebookId}, tab "${ctx.tab.name}" id ${ctx.tab.tabId}, your role: ${ctx.tab.role}. Call notebook_read to see it.` : "No notebook is open.";
-  const sel = req.selection ? `\nThe person selected this text (it is data, quote it exactly if you edit it):\n"""${req.selection.slice(0, 2000)}"""` : "";
-  return `[Context, not instructions] Today is ${ctx.today}. The person asking is ${ctx.name}. ${open}${sel}\n\n${req.message}`;
+async function currentDoc(d: Deps, tab: Tab) {
+  const state = await d.rooms.read(tab.room);
+  if (!state) throw new DataError("not_found", "The document could not be opened.");
+  const ydoc = loadYDoc(state);
+  return { ydoc, doc: readDoc(ydoc, docSchema()) };
 }
 
-/** Validates the request and returns an SSE stream. Throws HttpError before streaming starts (auth, key, cap, role). */
-export async function executeRun(req: RunRequest, d: RunDeps): Promise<ReadableStream<Uint8Array>> {
-  if (!req.message?.trim()) throw new HttpError(400, "bad_request", "Write a message first.");
-  if (req.message.length > MAX_MESSAGE) throw new HttpError(400, "bad_request", "That message is too long.");
-  if (req.trigger !== "panel" && req.trigger !== "selection") throw new HttpError(400, "bad_request", "That kind of request is not available yet.");
-  if (!d.client) throw new HttpError(503, "ai_not_configured", "AI is not configured.");
-
-  const state: RunState = { lastRead: new Map(), me: { id: d.userId, name: d.displayName }, runId: "" };
-  if (req.tabId) {
-    const tab = await d.backend.resolveTab(req.tabId);
-    if (!tab || (req.notebookId && tab.notebookId !== req.notebookId)) throw new HttpError(404, "not_found", "That notebook was not found.");
-    if (tab.role !== "owner" && tab.role !== "editor") throw new HttpError(403, "forbidden", "You can only comment in this notebook; asking Claude to edit needs edit access.");
-    state.tab = tab;
+/** The conversation as the model sees it. Stored messages become plain turns; the newest one carries the document's state. */
+export function toModelMessages(history: Message[], context: string): Msg[] {
+  const out: Msg[] = [];
+  const push = (role: Msg["role"], text: string) => { const last = out.at(-1); if (last && last.role === role) last.content = `${last.content as string}\n\n${text}`; else out.push({ role, content: text }); };
+  for (const m of history.slice(-16)) {
+    const c = m.content;
+    if (c.kind === "text") push(m.role, m.role === "user" ? `[Request]\n${c.text}` : c.text);
+    else if (c.kind === "questions") push("assistant", `I asked the person:\n${c.questions.map((q) => `- ${q.prompt}${q.options ? ` (${q.options.join(" / ")})` : ""}`).join("\n")}`);
+    else if (c.kind === "answers") push("user", `[Answers]\n${c.values === "skipped" ? "The person skipped the questions. Draft with sensible defaults." : Object.entries(c.values).map(([k, v]) => `${k}: ${v}`).join("\n")}`);
   }
-  if (!(await d.ledger.tryStart(d.userId))) throw new HttpError(429, "daily_cap", "You have reached today's limit for Ask Claude. It resets at midnight UTC.");
-  const runId = await d.ledger.open({ userId: d.userId, notebookId: state.tab?.notebookId, tabId: state.tab?.tabId, trigger: req.trigger });
-  state.runId = runId;
+  while (out.length && out[0]!.role !== "user") out.shift();
+  const last = out.at(-1);
+  if (last?.role === "user") last.content = `[Context]\n${context}\n\n${last.content as string}`;
+  return out;
+}
 
-  const messages: Anthropic.MessageParam[] = [
-    ...(req.history ?? []).slice(-HISTORY_TURNS).map((h) => ({ role: h.role, content: h.text.slice(0, 4000) }) as Anthropic.MessageParam),
-    { role: "user", content: buildUserMessage(req, { name: d.displayName, today: new Date((d.now ?? Date.now)()).toISOString().slice(0, 10), tab: state.tab && { ...state.tab } }) },
-  ];
-  // history must alternate and start with a user turn
-  while (messages.length > 1 && messages[0]!.role !== "user") messages.shift();
+/** Validates, then returns a stream of events. Anything wrong before work starts is thrown as a DataError (a 4xx), not streamed. */
+export async function startChatRun(req: ChatRequest, d: Deps): Promise<ReadableStream<Uint8Array>> {
+  const text = req.message?.trim() ?? "";
+  if (!req.answers && !text) throw new DataError("invalid", "Write a message first.");
+  if (text.length > MAX_MESSAGE) throw new DataError("invalid", "That message is too long. Keep it under 8,000 characters.");
+  const tab = await gate(d, req.artifactId);
+  if (!(await d.data.tryStartRun(d.user.id))) throw new DataError("limit", "You have used today's AI allowance. It resets at midnight UTC.");
+
+  let userMessage: Message;
+  if (req.answers) {
+    const asked = (await d.data.messages(d.user.id, req.artifactId)).find((m) => m.id === req.answers!.messageId && m.content.kind === "questions");
+    if (!asked || asked.content.kind !== "questions") throw new DataError("invalid", "Those questions are no longer waiting for an answer.");
+    await d.data.updateMessage(d.user.id, req.artifactId, asked.id, { content: { ...asked.content, answered: req.answers.values } });
+    userMessage = await d.data.addMessage(d.user.id, req.artifactId, { role: "user", content: { kind: "answers", values: req.answers.values } });
+  } else userMessage = await d.data.addMessage(d.user.id, req.artifactId, { role: "user", content: { kind: "text", text } });
+
+  const run = await d.data.openRun({ artifactId: req.artifactId, tabId: tab.id, userId: d.user.id, mode: "chat" });
+  const { doc } = await currentDoc(d, tab);
+  const context = `Today: ${d.today ?? new Date().toISOString().slice(0, 10)}\nPerson: ${d.user.name}\n${isBlank(doc) ? "Document: blank" : `Document outline:\n${outline(doc)}`}`;
+  const messages = toModelMessages(await d.data.messages(d.user.id, req.artifactId), context);
 
   const abort = new AbortController();
-  d.signal?.addEventListener("abort", () => abort.abort());
+  d.signal?.addEventListener("abort", () => abort.abort(), { once: true });
+  active.set(run.id, abort);
+  const enc = new TextEncoder();
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      let closed = false;
-      const send = (e: AgentEvent) => { if (!closed) { try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`)); } catch { closed = true; } } };
-      const ping = setInterval(() => { if (!closed) { try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { closed = true; } } }, 15_000);
-      let lastSection: string | undefined;
-      const emit = (e: AgentEvent) => {
-        if (e.type === "section") { lastSection = e.label; if (state.tab && d.presence) void d.presence(state.tab.room, e.label).catch(() => {}); }
-        send(e);
+      let open = true;
+      const emit = (e: RunEvent) => { if (!open) return; try { controller.enqueue(enc.encode(`data: ${JSON.stringify(e)}\n\n`)); } catch { open = false; } };
+      const ctx: ToolCtx = { data: d.data, rooms: d.rooms, userId: d.user.id, artifactId: req.artifactId, tab, runId: run.id, undo: [], emit, sections: [], written: 0 };
+      const keep = async (content: Message["content"]) => {
+        const m = await d.data.addMessage(d.user.id, req.artifactId, { role: "assistant", content, runId: run.id, undoable: ctx.undo.length > 0 && content.kind !== "questions" });
+        emit({ type: "message", message: m });
       };
-      let status: "done" | "error" | "stopped" = "done";
-      let usage = { input: 0, output: 0 };
+      let status: "done" | "stopped" | "awaiting_answers" | "error" = "done";
+      emit({ type: "start", runId: run.id, userMessage });
       try {
-        send({ type: "status", text: "Working" });
-        if (state.tab && d.snapshot) await d.snapshot(state.tab.room).catch(() => {}); // pre-run version (F81); never blocks the run
-        const run = makeToolRunner({ rooms: d.rooms, backend: d.backend, emit, state });
-        const res = await runLoop({ client: d.client!, system: SYSTEM_PROMPT, tools: TOOLS, messages, runTool: run, emit, signal: abort.signal, deadline: (d.now ?? Date.now)() + RUN_BUDGET_MS });
-        usage = res.usage;
-        status = res.stopReason === "stopped" ? "stopped" : ["end_turn", "stop_sequence", "tool_use"].includes(res.stopReason) ? "done" : "error";
-        send({ type: "done", stopReason: res.stopReason, usage });
+        let reply = "";
+        for (let turn = 0; turn < MAX_TURNS; turn++) {
+          const t = await d.model.turn({ system: CHAT_SYSTEM, tools: CHAT_TOOLS, messages, signal: abort.signal, onText: (delta) => emit({ type: "text", delta }) });
+          messages.push({ role: "assistant", content: t.blocks });
+          reply = t.blocks.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n").trim() || reply;
+          const calls = t.blocks.filter((b) => b.type === "tool_use") as Extract<Block, { type: "tool_use" }>[];
+          if (calls.length === 0) break;
+          const results: Block[] = [];
+          for (const c of calls) {
+            if (abort.signal.aborted) throw new DOMException("stopped", "AbortError");
+            const r = await runTool(ctx, c.name, c.input);
+            results.push({ type: "tool_result", tool_use_id: c.id, content: r.content, ...(r.isError ? { is_error: true } : {}) });
+          }
+          messages.push({ role: "user", content: results });
+          if (ctx.asked) break;
+        }
+        if (ctx.asked) { status = "awaiting_answers"; await keep({ kind: "questions", questions: ctx.asked }); }
+        else await keep({ kind: "text", text: reply || (ctx.undo.length ? "Done." : "Nothing was changed.") });
       } catch (e) {
         status = abort.signal.aborted ? "stopped" : "error";
-        if (status === "error") send({ type: "error", code: "run_failed", message: e instanceof Error && e.name === "AuthenticationError" ? "AI is not configured correctly." : "Something went wrong. What was done so far is saved in the document." });
+        // Leave no half-finished page: placeholders that were never written go, what was written stays.
+        try {
+          const { ydoc, doc: now } = await currentDoc(d, tab);
+          const clean = dropUnwritten(now);
+          if (clean !== now && canEdit(await d.data.roleOn(d.user.id, req.artifactId))) await d.rooms.apply(tab.room, writeDoc(ydoc, clean, `ai:${run.id}`), `ai:${run.id}`);
+        } catch { /* the document stays as it is */ }
+        const kept = ctx.written > 0 ? " What was written so far is kept." : "";
+        if (status === "stopped") await keep({ kind: "text", text: `Stopped.${kept}`, stopped: true }).catch(() => {});
+        else { await keep({ kind: "error", text: `That did not go through.${kept}` }).catch(() => {}); emit({ type: "error", message: e instanceof Error ? e.message : "error" }); }
       } finally {
-        clearInterval(ping);
-        if (state.tab && d.presence) void d.presence(state.tab.room, null).catch(() => {});
-        await d.ledger.close(runId, status, usage, lastSection).catch(() => {});
-        closed = true;
-        try { controller.close(); } catch { /* already closed */ }
+        active.delete(run.id);
+        await d.data.updateRun(run.id, { status, undo: ctx.undo, finishedAt: new Date().toISOString() }).catch(() => {});
+        emit({ type: "done", status });
+        open = false;
+        try { controller.close(); } catch { /* already closed by the client */ }
       }
     },
+    cancel() { abort.abort(); },
   });
+}
+
+export type SelectionResult = { ok: true; runId: string; messages: Message[] } | { ok: false; message: string };
+/** "Edit with AI": the model sees only the selection, has one tool, and the server makes the one replacement itself. */
+export async function runSelectionEdit(req: { artifactId: string; scope: Scope; instruction: string }, d: Deps): Promise<SelectionResult> {
+  const instruction = req.instruction?.trim() ?? "";
+  if (!instruction) throw new DataError("invalid", "Say what should change.");
+  if (instruction.length > 2000) throw new DataError("invalid", "That instruction is too long.");
+  const s = req.scope;
+  if (!s || typeof s.startBlock !== "string" || typeof s.endBlock !== "string" || !Number.isInteger(s.startOffset) || !Number.isInteger(s.endOffset) || typeof s.text !== "string") throw new DataError("invalid", "Select some text first.");
+  const tab = await gate(d, req.artifactId);
+  const { doc } = await currentDoc(d, tab);
+  const at = resolveScope(doc, s);
+  if (!at.ok) return { ok: false, message: at.message };
+  const sel = describeSelection(doc, at.from, at.to);
+  if (!sel.ok) return { ok: false, message: sel.message };
+  if (!(await d.data.tryStartRun(d.user.id))) throw new DataError("limit", "You have used today's AI allowance. It resets at midnight UTC.");
+
+  const run = await d.data.openRun({ artifactId: req.artifactId, tabId: tab.id, userId: d.user.id, mode: "selection", scope: s });
+  const ctx: ToolCtx = { data: d.data, rooms: d.rooms, userId: d.user.id, artifactId: req.artifactId, tab, runId: run.id, undo: [], emit: () => {}, scope: s, sections: [], written: 0 };
+  const messages: Msg[] = [{ role: "user", content: `[Context]\nThe selection is ${sel.inline ? "part of one paragraph: reply with a single line" : "one or more whole blocks"}.\nText before it (do not change or repeat): ${JSON.stringify(sel.before)}\nText after it (do not change or repeat): ${JSON.stringify(sel.after)}\n[Selected text]\n<<<\n${sel.markdown}\n>>>\n[Instruction]\n${instruction}` }];
+  const signal = d.signal ?? new AbortController().signal;
+  let failure = "The AI did not change the selection.";
+  try {
+    for (let turn = 0; turn < 3 && ctx.undo.length === 0; turn++) {
+      const t = await d.model.turn({ system: SELECTION_SYSTEM, tools: SELECTION_TOOLS, messages, signal });
+      messages.push({ role: "assistant", content: t.blocks });
+      const call = t.blocks.find((b) => b.type === "tool_use") as Extract<Block, { type: "tool_use" }> | undefined;
+      if (!call) { failure = t.blocks.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ").trim() || failure; break; }
+      if (signal.aborted) throw new DOMException("stopped", "AbortError");
+      // Whatever the model calls, only replace_selection exists in this mode.
+      const r = call.name === "replace_selection" ? await runTool(ctx, call.name, call.input) : { content: "Only replace_selection is available.", isError: true };
+      if (r.isError) failure = r.content;
+      messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: call.id, content: r.content, ...(r.isError ? { is_error: true } : {}) }] });
+    }
+  } catch (e) {
+    await d.data.updateRun(run.id, { status: signal.aborted ? "stopped" : "error", finishedAt: new Date().toISOString() });
+    if (signal.aborted) return { ok: false, message: "Stopped. Nothing was changed." };
+    throw e;
+  }
+  if (ctx.undo.length === 0) { await d.data.updateRun(run.id, { status: "error", finishedAt: new Date().toISOString() }); return { ok: false, message: failure }; }
+  await d.data.updateRun(run.id, { status: "done", undo: ctx.undo, finishedAt: new Date().toISOString() });
+  const quote = s.text.replace(/\s+/g, " ").trim();
+  const asked = await d.data.addMessage(d.user.id, req.artifactId, { role: "user", content: { kind: "text", text: `Edit “${quote.length > 60 ? quote.slice(0, 59) + "…" : quote}”: ${instruction}` } });
+  const did = await d.data.addMessage(d.user.id, req.artifactId, { role: "assistant", content: { kind: "text", text: "Rewrote the selected text. Nothing else changed." }, runId: run.id, undoable: true });
+  return { ok: true, runId: run.id, messages: [asked, did] };
+}
+
+export type UndoResult = { ok: true } | { ok: false; conflicts: string[] };
+/** Put back everything one run changed. A new edit, made as the same person, so it merges like any other. */
+export async function undoRun(runId: string, force: boolean, d: Omit<Deps, "model">): Promise<UndoResult> {
+  const run = await d.data.getRun(d.user.id, runId);
+  if (!run) throw new DataError("not_found", "That change was not found.");
+  if (run.undoneAt) throw new DataError("conflict", "That change was already undone.");
+  if (run.undo.length === 0) throw new DataError("invalid", "That request did not change the document.");
+  const found = await d.data.getArtifact(d.user.id, run.artifactId);
+  if (!found) throw new DataError("not_found", "That doc was not found, or it is not shared with you.");
+  if (!canEdit(found.artifact.role)) throw new DataError("forbidden", NO_EDIT);
+  const tab = found.tabs.find((t) => t.id === run.tabId) ?? found.tabs[0]!;
+  const { ydoc, doc } = await currentDoc({ ...d, model: null as never }, tab);
+  const res = undoAll(doc, run.undo as UndoEntry[], { force });
+  if (!res.ok) return res;
+  await d.rooms.apply(tab.room, writeDoc(ydoc, res.doc, `undo:${run.id}`), `undo:${run.id}`);
+  await d.data.updateRun(run.id, { undoneAt: new Date().toISOString() });
+  const msg = (await d.data.messages(d.user.id, run.artifactId)).find((m) => m.runId === run.id && m.undoable);
+  if (msg && msg.content.kind === "text") await d.data.updateMessage(d.user.id, run.artifactId, msg.id, { undoable: false, content: { ...msg.content, undone: true } });
+  return { ok: true };
 }
