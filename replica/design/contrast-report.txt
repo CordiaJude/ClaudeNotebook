@@ -1,0 +1,120 @@
+  AAA   14.62:1  light-text               on light-bg             
+  AAA   15.93:1  light-text               on light-surface        
+  AAA   16.63:1  light-text               on light-raised         
+  AAA   13.48:1  light-text               on light-sunken         
+  AAA   12.05:1  light-text               on light-pressed        
+  AA     6.50:1  light-text-muted         on light-bg             
+  AAA    7.09:1  light-text-muted         on light-surface        
+  AAA    7.40:1  light-text-muted         on light-raised         
+  AA     6.00:1  light-text-muted         on light-sunken         
+  AA     5.17:1  light-text-subtle        on light-bg             
+  AA     5.63:1  light-text-subtle        on light-surface        
+  AA     5.88:1  light-text-subtle        on light-raised         
+  AA     4.77:1  light-text-subtle        on light-sunken         
+  AAA    7.13:1  light-on-accent          on light-accent         
+  AAA    9.29:1  light-on-accent          on light-accent-hover   
+  AA     6.27:1  light-accent             on light-bg             
+  AA     6.84:1  light-accent             on light-surface        
+  AAA    7.13:1  light-accent             on light-raised         
+  AAA    7.57:1  light-accent-text        on light-accent-subtle  
+  AAA   13.55:1  light-text               on light-accent-subtle  
+  AA     5.65:1  light-danger             on light-bg             
+  AA     6.16:1  light-danger             on light-surface        
+  AA     6.43:1  light-danger             on light-raised         
+  AA     5.20:1  light-danger             on light-danger-subtle  
+  AA     6.43:1  light-on-danger          on light-danger         
+  AA     5.67:1  light-success            on light-bg             
+  AA     6.17:1  light-success            on light-surface        
+  AA     6.44:1  light-success            on light-raised         
+  AA     5.36:1  light-success            on light-success-subtle 
+  AA     5.54:1  light-warning            on light-bg             
+  AA     6.04:1  light-warning            on light-surface        
+  AA     6.30:1  light-warning            on light-raised         
+  AA     5.28:1  light-warning            on light-warning-subtle 
+  AAA   13.02:1  light-text               on light-highlight      
+  AAA   13.59:1  light-text               on light-tint-gray      
+  AAA   13.25:1  light-text               on light-tint-red       
+  AAA   13.65:1  light-text               on light-tint-orange    
+  AAA   14.01:1  light-text               on light-tint-yellow    
+  AAA   13.79:1  light-text               on light-tint-green     
+  AAA   13.48:1  light-text               on light-tint-blue      
+  AAA   13.15:1  light-text               on light-tint-purple    
+  AA     5.52:1  light-on-person          on light-person-1       
+  PASS   5.29:1  light-person-1           on light-surface        ui
+  AA     4.99:1  light-on-person          on light-person-2       
+  PASS   4.78:1  light-person-2           on light-surface        ui
+  AA     5.45:1  light-on-person          on light-person-3       
+  PASS   5.22:1  light-person-3           on light-surface        ui
+  AA     6.04:1  light-on-person          on light-person-4       
+  PASS   5.79:1  light-person-4           on light-surface        ui
+  AA     6.07:1  light-on-person          on light-person-5       
+  PASS   5.81:1  light-person-5           on light-surface        ui
+  AA     5.69:1  light-on-person          on light-person-6       
+  PASS   5.45:1  light-person-6           on light-surface        ui
+  PASS   3.18:1  light-border-input       on light-bg             ui
+  PASS   6.27:1  light-focus              on light-bg             ui
+  PASS   3.47:1  light-border-input       on light-surface        ui
+  PASS   6.84:1  light-focus              on light-surface        ui
+  PASS   3.62:1  light-border-input       on light-raised         ui
+  PASS   7.13:1  light-focus              on light-raised         ui
+  AAA   14.79:1  dark-text                on dark-bg              
+  AAA   13.63:1  dark-text                on dark-surface         
+  AAA   12.18:1  dark-text                on dark-raised          
+  AAA   10.92:1  dark-text                on dark-sunken          
+  AAA    9.54:1  dark-text                on dark-pressed         
+  AAA    8.29:1  dark-text-muted          on dark-bg              
+  AAA    7.64:1  dark-text-muted          on dark-surface         
+  AA     6.83:1  dark-text-muted          on dark-raised          
+  AA     6.12:1  dark-text-muted          on dark-sunken          
+  AA     6.71:1  dark-text-subtle         on dark-bg              
+  AA     6.18:1  dark-text-subtle         on dark-surface         
+  AA     5.52:1  dark-text-subtle         on dark-raised          
+  AA     4.95:1  dark-text-subtle         on dark-sunken          
+  AAA    7.75:1  dark-on-accent           on dark-accent          
+  AAA    9.20:1  dark-on-accent           on dark-accent-hover    
+  AAA    9.30:1  dark-accent              on dark-bg              
+  AAA    8.57:1  dark-accent              on dark-surface         
+  AAA    7.66:1  dark-accent              on dark-raised          
+  AAA    7.38:1  dark-accent-text         on dark-accent-subtle   
+  AAA    9.88:1  dark-text                on dark-accent-subtle   
+  AAA    7.12:1  dark-danger              on dark-bg              
+  AA     6.56:1  dark-danger              on dark-surface         
+  AA     5.86:1  dark-danger              on dark-raised          
+  AA     5.61:1  dark-danger              on dark-danger-subtle   
+  AAA    7.12:1  dark-on-danger           on dark-danger          
+  AAA    9.18:1  dark-success             on dark-bg              
+  AAA    8.46:1  dark-success             on dark-surface         
+  AAA    7.56:1  dark-success             on dark-raised          
+  AA     6.32:1  dark-success             on dark-success-subtle  
+  AAA    9.43:1  dark-warning             on dark-bg              
+  AAA    8.69:1  dark-warning             on dark-surface         
+  AAA    7.76:1  dark-warning             on dark-raised          
+  AA     6.51:1  dark-warning             on dark-warning-subtle  
+  AAA    7.05:1  dark-text                on dark-highlight       
+  AAA   10.46:1  dark-text                on dark-tint-gray       
+  AAA   10.76:1  dark-text                on dark-tint-red        
+  AAA   10.04:1  dark-text                on dark-tint-orange     
+  AAA    9.18:1  dark-text                on dark-tint-yellow     
+  AAA   10.16:1  dark-text                on dark-tint-green      
+  AAA   10.14:1  dark-text                on dark-tint-blue       
+  AAA   10.57:1  dark-text                on dark-tint-purple     
+  AAA    8.47:1  dark-on-person           on dark-person-1        
+  PASS   7.81:1  dark-person-1            on dark-surface         ui
+  AAA    9.37:1  dark-on-person           on dark-person-2        
+  PASS   8.64:1  dark-person-2            on dark-surface         ui
+  AAA    8.12:1  dark-on-person           on dark-person-3        
+  PASS   7.49:1  dark-person-3            on dark-surface         ui
+  AAA    8.35:1  dark-on-person           on dark-person-4        
+  PASS   7.70:1  dark-person-4            on dark-surface         ui
+  AAA    7.68:1  dark-on-person           on dark-person-5        
+  PASS   7.08:1  dark-person-5            on dark-surface         ui
+  AAA   10.05:1  dark-on-person           on dark-person-6        
+  PASS   9.26:1  dark-person-6            on dark-surface         ui
+  PASS   4.55:1  dark-border-input        on dark-bg              ui
+  PASS   9.30:1  dark-focus               on dark-bg              ui
+  PASS   4.19:1  dark-border-input        on dark-surface         ui
+  PASS   8.57:1  dark-focus               on dark-surface         ui
+  PASS   3.75:1  dark-border-input        on dark-raised          ui
+  PASS   7.66:1  dark-focus               on dark-raised          ui
+
+  118 pairs, 0 failing AA

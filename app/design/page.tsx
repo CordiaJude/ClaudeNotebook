@@ -1,36 +1,35 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import type { Metadata } from "next";
 import { Showcase } from "@/components/design/Showcase";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/brand/Mark";
 import { BRAND } from "@/lib/brand";
+import { TOKENS } from "@/lib/tokens.generated";
 
 export const metadata: Metadata = { title: `Design system · ${BRAND.name}` };
 
 type Tok = { name: string; value: string };
-function readTokens(): { light: Tok[]; dark: Tok[] } {
-  const css = readFileSync(path.join(process.cwd(), "styles/tokens.css"), "utf8");
-  const [lightBlock = "", darkBlock = ""] = css.split('[data-theme="dark"]');
-  const pick = (b: string): Tok[] => [...b.matchAll(/(--cn-[\w-]+):\s*([^;]+);/g)].map((m) => ({ name: m[1]!, value: m[2]!.trim() }));
-  return { light: pick(lightBlock), dark: pick(darkBlock) };
-}
-const isColor = (v: string) => /^(#|rgba?\()/.test(v);
+const toks = (theme: "light" | "dark"): Tok[] => Object.entries(TOKENS.color[theme]).map(([name, value]) => ({ name, value }));
+const other: string[] = [
+  ...Object.entries(TOKENS.font).map(([k, v]) => `font-${k}: ${v}`),
+  ...Object.entries(TOKENS.type).map(([k, v]) => `text-${k}: ${v.size}/${v.line}, weight ${v.weight}${"family" in v ? `, ${v.family}` : ""}`),
+  `space: ${TOKENS.space.join(", ")}`,
+  ...Object.entries(TOKENS.radius).map(([k, v]) => `radius-${k}: ${v}px`),
+  ...Object.entries(TOKENS.motion).map(([k, v]) => `motion-${k}: ${v}`),
+  ...Object.entries(TOKENS.layout).filter(([, v]) => typeof v === "number").map(([k, v]) => `layout-${k}: ${v}px`),
+];
 
 function Tokens({ tokens }: { tokens: Tok[] }) {
-  const colors = tokens.filter((t) => isColor(t.value));
-  const other = tokens.filter((t) => !isColor(t.value));
   return (
     <>
-      <div className="cn-swatch-grid">
-        {colors.map((t) => (
-          <div key={t.name} className="cn-token"><i style={{ background: `var(${t.name})` }} /><span>{t.name}<br />{t.value}</span></div>
+      <div className="ui-swatch-grid">
+        {tokens.map((t) => (
+          <div key={t.name} className="ui-token"><i style={{ background: `var(--color-${t.name})` }} /><span>{t.name}<br />{t.value}</span></div>
         ))}
       </div>
       <details style={{ marginTop: 16 }}>
-        <summary className="cn-caption" style={{ cursor: "pointer" }}>Type, layout, radii, shadows, motion ({other.length})</summary>
-        <ul className="cn-code" style={{ fontSize: 12, listStyle: "none", padding: 0 }}>
-          {other.map((t) => <li key={t.name}>{t.name}: {t.value}</li>)}
+        <summary className="ui-caption" style={{ cursor: "pointer" }}>Type, spacing, radii, motion, layout ({other.length})</summary>
+        <ul className="ui-code" style={{ fontSize: 12, listStyle: "none", padding: 0 }}>
+          {other.map((t) => <li key={t}>{t}</li>)}
         </ul>
       </details>
     </>
@@ -39,10 +38,10 @@ function Tokens({ tokens }: { tokens: Tok[] }) {
 
 function ThemePane({ theme, tokens }: { theme: "light" | "dark"; tokens: Tok[] }) {
   return (
-    <div data-theme={theme} style={{ background: "var(--cn-canvas)", color: "var(--cn-text-primary)", padding: "48px 0", borderTop: "1px solid var(--cn-border)" }} data-testid={`pane-${theme}`}>
-      <div className="cn-section">
-        <h2 className="cn-h1" style={{ margin: "0 0 24px" }}>{theme === "light" ? "Light" : "Dark"} theme</h2>
-        <h3 className="cn-eyebrow" style={{ marginBottom: 8 }}>Color tokens</h3>
+    <div data-theme={theme} style={{ background: "var(--color-bg)", color: "var(--color-text)", padding: "48px 0", borderTop: "1px solid var(--color-border)" }} data-testid={`pane-${theme}`}>
+      <div className="ui-section">
+        <h2 className="ui-h1" style={{ margin: "0 0 24px" }}>{theme === "light" ? "Light" : "Dark"} theme</h2>
+        <h3 className="ui-eyebrow" style={{ marginBottom: 8 }}>Color tokens</h3>
         <Tokens tokens={tokens} />
         <Showcase />
       </div>
@@ -51,22 +50,19 @@ function ThemePane({ theme, tokens }: { theme: "light" | "dark"; tokens: Tok[] }
 }
 
 export default function DesignPage() {
-  const { light, dark } = readTokens();
-  // Dark overrides apply on top of light values.
-  const darkFull = light.map((t) => dark.findLast((d) => d.name === t.name) ?? t).concat(dark.filter((d) => !light.some((l) => l.name === d.name)));
   return (
     <main>
-      <header className="cn-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 72 }}>
+      <header className="ui-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 72 }}>
         <Wordmark /><ThemeToggle />
       </header>
-      <div className="cn-section" style={{ padding: "32px 16px" }}>
-        <p className="cn-eyebrow">Living style guide</p>
-        <h1 className="cn-h-title" style={{ margin: "8px 0 8px" }}>Design system</h1>
-        <p className="cn-caption" style={{ maxWidth: 560 }}>Every token and component, rendered in both themes. Tokens are read from <code className="cn-code">styles/tokens.css</code>. Values tagged [D] in the spec are tuned by eye.</p>
+      <div className="ui-section" style={{ padding: "32px 24px" }}>
+        <p className="ui-eyebrow">Living style guide</p>
+        <h1 className="ui-h-title" style={{ margin: "8px 0 8px" }}>Design system</h1>
+        <p className="ui-caption" style={{ maxWidth: 560 }}>Every token and component, in both themes. Tokens come from <code className="ui-code">replica/design/tokens.json</code>; each component lists the recon screens it is used on.</p>
       </div>
-      <ThemePane theme="light" tokens={light} />
-      <ThemePane theme="dark" tokens={darkFull} />
-      <footer className="cn-section cn-caption" style={{ padding: "24px 16px 48px" }}>{BRAND.legalLine}</footer>
+      <ThemePane theme="light" tokens={toks("light")} />
+      <ThemePane theme="dark" tokens={toks("dark")} />
+      <footer className="ui-section ui-caption" style={{ padding: "24px 24px 48px" }}>{BRAND.name} design system</footer>
     </main>
   );
 }

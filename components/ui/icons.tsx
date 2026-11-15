@@ -1,12 +1,47 @@
-const base = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
-export const IconGrip = () => <svg {...base}><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>;
-export const IconPlus = () => <svg {...base}><path d="M12 5v14M5 12h14"/></svg>;
-export const IconSun = () => <svg {...base}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>;
-export const IconMoon = () => <svg {...base}><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>;
-export const IconComment = () => <svg {...base}><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg>;
-export const IconBold = () => <svg {...base}><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg>;
-export const IconItalic = () => <svg {...base}><path d="M10 5h8M6 19h8M14 5l-4 14"/></svg>;
-export const IconLink = () => <svg {...base}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>;
-export const IconSparkle = () => <svg {...base}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>;
-export const IconDetached = () => <svg {...base} strokeDasharray="3 3"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg>;
-export const IconStop = () => <svg {...base}><rect x="6" y="6" width="12" height="12" rx="2"/></svg>;
+/* Icons: Lucide (ISC licence). One size and stroke everywhere; decorative by default, so label the button, not the icon. */
+import {
+  ArrowUp, Bold, ChartColumn, Check, ChevronDown, CircleAlert, Copy, Download, Eye, FileText, Globe, GripVertical, Image as ImageGlyph, Italic,
+  Link, List, ListOrdered, Lock, MessageSquare, MessageSquareDashed, Moon, Palette, Pencil, Play, Plus, Presentation, RotateCcw, Search,
+  Share2, Sparkles, Square, Sun, Table, Type, Underline, Undo2, Users, X, type LucideIcon, type LucideProps,
+} from "lucide-react";
+
+const mk = (C: LucideIcon) => function Icon(p: LucideProps) { return <C size={16} strokeWidth={1.75} aria-hidden {...p} />; };
+
+export const IconGrip = mk(GripVertical);
+export const IconPlus = mk(Plus);
+export const IconSun = mk(Sun);
+export const IconMoon = mk(Moon);
+export const IconComment = mk(MessageSquare);
+export const IconBold = mk(Bold);
+export const IconItalic = mk(Italic);
+export const IconUnderline = mk(Underline);
+export const IconLink = mk(Link);
+export const IconSparkle = mk(Sparkles);
+export const IconDetached = mk(MessageSquareDashed);
+export const IconStop = mk(Square);
+export const IconDoc = mk(FileText);
+export const IconDeck = mk(Presentation);
+export const IconShare = mk(Share2);
+export const IconDownload = mk(Download);
+export const IconSend = mk(ArrowUp);
+export const IconCheck = mk(Check);
+export const IconClose = mk(X);
+export const IconChevronDown = mk(ChevronDown);
+export const IconSearch = mk(Search);
+export const IconLock = mk(Lock);
+export const IconPeople = mk(Users);
+export const IconGlobe = mk(Globe);
+export const IconCopy = mk(Copy);
+export const IconPlay = mk(Play);
+export const IconUndo = mk(Undo2);
+export const IconRetry = mk(RotateCcw);
+export const IconEye = mk(Eye);
+export const IconPencil = mk(Pencil);
+export const IconImage = mk(ImageGlyph);
+export const IconText = mk(Type);
+export const IconChart = mk(ChartColumn);
+export const IconAlert = mk(CircleAlert);
+export const IconList = mk(List);
+export const IconListOrdered = mk(ListOrdered);
+export const IconTable = mk(Table);
+export const IconPalette = mk(Palette);

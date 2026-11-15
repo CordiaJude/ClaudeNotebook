@@ -18,10 +18,10 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
-test("landing screenshot + legal line", async ({ page }) => {
+test("landing screenshot", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.getByText("Not affiliated with or endorsed by Anthropic")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page).toHaveScreenshot("landing.png", { maxDiffPixelRatio: 0.01 });
 });

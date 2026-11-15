@@ -1,46 +1,38 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { signIn, signUp, type FormState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/misc";
-import { authErrorMessage, displayName, usernameToEmail, validateCredentials } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/client";
 
-export function LoginForm({ next }: { next?: string }) {
-  const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const problem = validateCredentials(username, password, mode);
-    if (problem) { setError(problem); return; }
-    setBusy(true); setError("");
-    const supabase = createClient();
-    const name = displayName(username);
-    const email = usernameToEmail(name);
-    const { data, error: err } = mode === "signup"
-      ? await supabase.auth.signUp({ email, password, options: { data: { name } } })
-      : await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setError(authErrorMessage(err.message, mode)); setBusy(false); return; }
-    if (mode === "signup" && !data.session) { setError("Account created but not signed in: email confirmation is still on in Supabase. Turn it off (Authentication > Providers > Email), then sign in."); setBusy(false); return; }
-    const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : "/notebooks";
-    router.replace(safe);
-    router.refresh();
-  }
-
+export function LoginForm({ next, demo }: { next: string; demo: { email: string; password: string } | null }) {
+  const [mode, setMode] = useState<"in" | "up">("in");
+  const [inState, inAction, inPending] = useActionState<FormState, FormData>(signIn, null);
+  const [upState, upAction, upPending] = useActionState<FormState, FormData>(signUp, null);
+  const error = mode === "in" ? inState?.error : upState?.error;
+  const pending = inPending || upPending;
   return (
-    <form onSubmit={submit} style={{ display: "grid", gap: 12 }} noValidate>
-      <Segmented label="Sign in or create an account" value={mode} onValueChange={(m) => { setMode(m); setError(""); }} options={[{ value: "signin", label: "Sign in" }, { value: "signup", label: "Create account" }]} />
-      <Input aria-label="Name" autoComplete="name" spellCheck={false} placeholder="Your name (this is your username)" value={username} onChange={(e) => setUsername(e.target.value)} />
-      <Input type="password" aria-label="Password" autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder={mode === "signup" ? "Password (8+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
-      <Button type="submit" disabled={busy}>{busy ? "One moment…" : mode === "signup" ? "Create account" : "Sign in"}</Button>
-      {error ? <p role="alert" style={{ color: "var(--cn-danger)", margin: 0 }}>{error}</p> : null}
-      {mode === "signup" ? <p className="cn-caption" style={{ margin: 0 }}>There is no email on file, so a forgotten password cannot be reset. Keep it somewhere safe.</p> : null}
-    </form>
+    <div className="ui-stack">
+      <Segmented label="Sign in or create an account" value={mode} onValueChange={setMode} options={[{ value: "in", label: "Sign in" }, { value: "up", label: "Create account" }]} />
+      <form action={mode === "in" ? inAction : upAction} className="ui-stack" noValidate>
+        <input type="hidden" name="next" value={next} />
+        {mode === "up" ? <label className="ui-form-row"><span className="ui-label">Name</span><Input name="name" autoComplete="name" required maxLength={80} /></label> : null}
+        <label className="ui-form-row"><span className="ui-label">Email</span><Input name="email" type="email" autoComplete="email" required aria-invalid={error ? true : undefined} aria-describedby={error ? "login-error" : undefined} /></label>
+        <label className="ui-form-row"><span className="ui-label">Password</span><Input name="password" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"} required minLength={8} aria-describedby={mode === "up" ? "pw-hint" : undefined} /></label>
+        {mode === "up" ? <p className="ui-hint" id="pw-hint">At least 8 characters.</p> : null}
+        {error ? <p className="ui-error" id="login-error" role="alert">{error}</p> : null}
+        <Button type="submit" size="lg" loading={pending}>{mode === "in" ? "Sign in" : "Create account"}</Button>
+      </form>
+      <div className="ui-or" role="separator"><span>or</span></div>
+      <Button variant="secondary" size="lg" disabled title="Google sign-in is switched on in the backend step">Continue with Google</Button>
+      <p className="ui-hint">Google sign-in is switched on when the real accounts are connected.</p>
+      {demo ? (
+        <form action={inAction} className="ui-banner" style={{ alignItems: "center" }}>
+          <input type="hidden" name="next" value={next} /><input type="hidden" name="email" value={demo.email} /><input type="hidden" name="password" value={demo.password} />
+          <span style={{ flex: 1 }}>Demo mode: nothing is saved after a restart. Account <strong>{demo.email}</strong>, password <strong>{demo.password}</strong>.</span>
+          <Button type="submit" variant="secondary" size="sm" loading={inPending}>Use the demo account</Button>
+        </form>
+      ) : null}
+    </div>
   );
 }
