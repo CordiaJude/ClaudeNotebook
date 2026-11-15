@@ -95,6 +95,18 @@ export function invalid(schema: Record<string, unknown>, value: unknown, at = "i
   return null;
 }
 
+/** The questions in an ask_questions call, trimmed to what the chat can show. */
+export function questionsFrom(input: Record<string, unknown>): Question[] {
+  const raw = Array.isArray(input.questions) ? input.questions : [];
+  return raw.slice(0, 3).flatMap((q, i) => {
+    const o = q as Record<string, unknown>;
+    const prompt = text(o.prompt, 200).trim();
+    if (!prompt) return [];
+    const options = Array.isArray(o.options) ? o.options.map((x) => text(x, 60).trim()).filter(Boolean).slice(0, 4) : undefined;
+    return [{ id: text(o.id, 40).trim() || `q${i + 1}`, prompt, ...(options?.length ? { options } : {}) }];
+  });
+}
+
 export async function runTool(ctx: ToolCtx, name: string, input: Record<string, unknown>): Promise<ToolOutcome> {
   const def = [...CHAT_TOOLS, ...SELECTION_TOOLS].find((t) => t.name === name);
   if (!def) return { content: `There is no tool called ${name}.`, isError: true };
@@ -102,14 +114,7 @@ export async function runTool(ctx: ToolCtx, name: string, input: Record<string, 
   if (bad) return { content: JSON.stringify({ INVALID_JSON: JSON.stringify(input), problem: bad }), isError: true };
   switch (name) {
     case "ask_questions": {
-      const raw = Array.isArray(input.questions) ? input.questions : [];
-      const questions: Question[] = raw.slice(0, 3).flatMap((q, i) => {
-        const o = q as Record<string, unknown>;
-        const prompt = text(o.prompt, 200).trim();
-        if (!prompt) return [];
-        const options = Array.isArray(o.options) ? o.options.map((x) => text(x, 60).trim()).filter(Boolean).slice(0, 4) : undefined;
-        return [{ id: text(o.id, 40).trim() || `q${i + 1}`, prompt, ...(options?.length ? { options } : {}) }];
-      });
+      const questions = questionsFrom(input);
       if (questions.length === 0) return { content: "Give at least one question with a prompt.", isError: true };
       ctx.asked = questions;
       return { content: "The questions are shown to the person. Wait for their answers." };

@@ -1,6 +1,8 @@
 /* The data layer's contract. Screens and routes only ever call these functions. Today they are served from memory
    (lib/data/memory.ts); /replica-backend adds a Supabase implementation with the same signatures.
    Every function that touches a doc or deck takes the acting user's id and checks their role itself. */
+import type { DesignSystem } from "@/lib/deck/design";
+import type { DeckUndo } from "@/lib/deck/edit";
 import type { UndoEntry } from "@/lib/doc/edit";
 import type { Scope } from "@/lib/doc/scope";
 
@@ -26,7 +28,7 @@ export type MessageContent =
 export type Message = { id: string; role: "user" | "assistant"; content: MessageContent; runId?: string; undoable?: boolean; createdAt: string };
 
 export type RunStatus = "running" | "awaiting_answers" | "done" | "error" | "stopped";
-export type Run = { id: string; artifactId: string; tabId: string; userId: string; mode: "chat" | "selection"; status: RunStatus; scope?: Scope; undo: UndoEntry[]; undoneAt?: string; section?: string; model?: string; inputTokens?: number; outputTokens?: number; startedAt: string; finishedAt?: string };
+export type Run = { id: string; artifactId: string; tabId: string; userId: string; mode: "chat" | "selection"; status: RunStatus; scope?: Scope; undo: UndoEntry[] | DeckUndo[]; undoneAt?: string; section?: string; model?: string; inputTokens?: number; outputTokens?: number; startedAt: string; finishedAt?: string };
 
 export type ErrorCode = "unauthenticated" | "forbidden" | "not_found" | "invalid" | "conflict" | "limit";
 export class DataError extends Error {
@@ -56,6 +58,13 @@ export interface Data {
   setRole(userId: string, artifactId: string, email: string, role: ShareRole): Promise<void>;
   /** The owner removes someone; anyone but the owner may remove themselves. */
   removeAccess(userId: string, artifactId: string, email: string): Promise<void>;
+
+  // design system: the colours and fonts every deck of a person follows
+  /** With an artifact id: the design system that deck is shown in (its owner's), for anyone who can open it. Without: the person's own. */
+  getDesign(userId: string, artifactId?: string): Promise<DesignSystem>;
+  /** The value is checked first (colours, fonts, contrast); a DataError "invalid" carries what is wrong. */
+  saveDesign(userId: string, design: unknown): Promise<DesignSystem>;
+  resetDesign(userId: string): Promise<DesignSystem>;
 
   // live documents
   tabByRoom(room: string): Promise<Tab | null>;
