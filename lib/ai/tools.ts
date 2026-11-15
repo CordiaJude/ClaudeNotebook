@@ -69,7 +69,37 @@ const told = (r: Result, done: string): ToolOutcome =>
   r.ok ? { content: `${done} ${r.changed.map((c) => `[${c.id} v${c.version}]`).join(" ")}`.trim() } : { content: r.message + (r.current ? `\nCurrent content:\n${r.current}` : ""), isError: true };
 const text = (v: unknown, max = 60_000) => (typeof v === "string" ? v.slice(0, max) : "");
 
+/** A small JSON-schema check (the subset our tools use). Tool inputs can arrive cut short or malformed, so nothing runs unchecked. */
+export function invalid(schema: Record<string, unknown>, value: unknown, at = "input"): string | null {
+  const type = schema.type as string | undefined;
+  if (type === "object") {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return `${at} must be an object`;
+    const props = (schema.properties ?? {}) as Record<string, Record<string, unknown>>;
+    for (const k of (schema.required as string[] | undefined) ?? []) if ((value as Record<string, unknown>)[k] === undefined) return `${at}.${k} is missing`;
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (!props[k]) { if (schema.additionalProperties === false) return `${at}.${k} is not a known field`; continue; }
+      const bad = invalid(props[k], v, `${at}.${k}`);
+      if (bad) return bad;
+    }
+    return null;
+  }
+  if (type === "array") {
+    if (!Array.isArray(value)) return `${at} must be a list`;
+    if (typeof schema.minItems === "number" && value.length < schema.minItems) return `${at} needs at least ${schema.minItems} item(s)`;
+    if (typeof schema.maxItems === "number" && value.length > schema.maxItems) return `${at} allows at most ${schema.maxItems} item(s)`;
+    for (let i = 0; i < value.length; i++) { const bad = invalid((schema.items ?? {}) as Record<string, unknown>, value[i], `${at}[${i}]`); if (bad) return bad; }
+    return null;
+  }
+  if (type === "string") { if (typeof value !== "string") return `${at} must be text`; if (Array.isArray(schema.enum) && !schema.enum.includes(value)) return `${at} must be one of: ${(schema.enum as string[]).join(", ")}`; return null; }
+  if (type === "integer") return Number.isInteger(value) ? null : `${at} must be a whole number`;
+  return null;
+}
+
 export async function runTool(ctx: ToolCtx, name: string, input: Record<string, unknown>): Promise<ToolOutcome> {
+  const def = [...CHAT_TOOLS, ...SELECTION_TOOLS].find((t) => t.name === name);
+  if (!def) return { content: `There is no tool called ${name}.`, isError: true };
+  const bad = invalid(def.input, input);
+  if (bad) return { content: JSON.stringify({ INVALID_JSON: JSON.stringify(input), problem: bad }), isError: true };
   switch (name) {
     case "ask_questions": {
       const raw = Array.isArray(input.questions) ? input.questions : [];

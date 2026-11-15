@@ -1,20 +1,20 @@
 feature,area,priority,original,clone,notes
 Sign up with email or Google,onboarding,must,yes,partial,email sign-up and sign-in work on the in-memory accounts; Google and confirmed addresses arrive with the real accounts in the backend step
 Library of all docs and decks with search and type filter,library,must,yes,yes,S02. Search covers titles and document text. Data is in memory until the backend step
-Create a doc from a plain-language prompt,docs,must,yes,partial,F01 works end to end with the scripted demo model; a real model is connected in the backend step
-AI asks clarifying questions before drafting,ai,must,yes,partial,"question card with choices, free text and Skip; asked by the scripted demo model until a real model is connected"
-AI drafts live into the editor (streamed),ai,must,yes,partial,"structured operations, one section per change, placeholders first; text is canned until a real model is connected"
+Create a doc from a plain-language prompt,docs,must,yes,partial,F01 works end to end with the scripted demo model. The real model connection is written and unit-tested but has never run: no working model key was available
+AI asks clarifying questions before drafting,ai,must,yes,partial,"question card with choices, free text and Skip; asked by the scripted demo model until a real model key is set"
+AI drafts live into the editor (streamed),ai,must,yes,partial,"structured operations, one section per change, placeholders first; canned text until a real model key is set"
 Chat panel beside the editor,workspace,must,yes,yes,S04. Resizable; stacks behind a switch on a phone; chat is private per person
 Rich-text editing: headings lists links tables,docs,must,yes,yes,"S05. Also checklists, quotes, code, dividers, cell colours, slash menu. Images are not built"
-Select text then Edit with AI (changes only the selection),ai,must,yes,partial,F02. The server makes the one replacement and proves nothing outside changed (3000-run property test); the rewrite itself is canned until a real model is connected
+Select text then Edit with AI (changes only the selection),ai,must,yes,partial,F02. The server makes the one replacement and proves nothing outside changed (3000-run property test); the rewrite is canned until a real model key is set
 Create a deck from a prompt,slides,must,yes,no,
 Slide editor: thumbnails canvas move and resize elements,slides,must,yes,no,hard part
 Speaker notes drafted by AI,slides,must,yes,no,
 Present full screen,slides,must,yes,no,
 Design system: colours fonts applied to every deck,design system,must,yes,no,
-Share by email with viewer or editor role,sharing,must,yes,no,
-Docs and decks private by default,sharing,must,yes,partial,a new doc has only its owner; the share dialog that would change that is not built yet
-Export doc to Word and PDF,export,must,yes,no,
+Share by email with viewer or editor role,sharing,must,yes,partial,"S09 works: share, change access, remove, leave, and invite an address with no account. On demo data; no email is sent until the real accounts and mail are connected"
+Docs and decks private by default,sharing,must,yes,yes,a new doc has only its owner; the share dialog says so; strangers get 'not here' (tested)
+Export doc to Word and PDF,export,must,yes,partial,"S10 works locally: real Word headings, lists, tables and links (opened in LibreOffice); PDF by headless Chromium. PDF is not yet proven on the serverless host"
 Export deck to PowerPoint and PDF,export,must,yes,no,
 Autosave,docs,must,yes,partial,every edit is saved to the live document on the server and survives a reload; storage is in server memory until the backend step
 Owner-only rename and delete,sharing,must,yes,yes,enforced in the data layer and tested; the same rule is tested in the database schema
@@ -29,7 +29,7 @@ Templates for docs and decks,library,should,yes,partial,four doc templates on th
 Brand-locked colour picker in slides,design system,should,yes,no,
 Build design system from an uploaded brand deck,design system,should,yes,no,
 Charts inside docs and slides,docs,should,yes,no,
-Export doc to Markdown,export,should,yes,no,
+Export doc to Markdown,export,should,yes,yes,S10
 Export deck to HTML and slide PNG,export,should,yes,no,
 Turn a doc into a deck,ai,should,yes,no,
 Export to Google Docs and Google Slides,export,could,yes,no,needs your own Google OAuth app and verification

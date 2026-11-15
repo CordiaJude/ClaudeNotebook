@@ -7,14 +7,16 @@ import { renameArtifact } from "@/app/actions";
 import { Mark } from "@/components/brand/Mark";
 import { AiPresencePill, EmptyState } from "@/components/doc/parts";
 import { Button } from "@/components/ui/button";
-import { IconDeck, IconDownload, IconPeople } from "@/components/ui/icons";
+import { IconDeck, IconDownload } from "@/components/ui/icons";
 import { Badge, Segmented } from "@/components/ui/misc";
 import { Tooltip } from "@/components/ui/overlays";
-import type { Artifact, Message, Tab } from "@/lib/data/types";
+import type { Artifact, Message, Tab, User } from "@/lib/data/types";
 import type { RoomStatus } from "@/lib/rooms/client";
 import { Chat } from "./Chat";
 import { ChatProvider, useChat } from "./chat-store";
 import { DocEditor } from "./DocEditor";
+import { ExportButton } from "./Export";
+import { ShareButton } from "./Share";
 
 const MIN = 300, MAX = 560, KEY = "chat-width";
 
@@ -50,7 +52,7 @@ function Title({ artifact }: { artifact: Artifact }) {
   );
 }
 
-export function Workspace({ artifact, tab, messages, demo, firstPrompt }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: boolean; firstPrompt?: string }) {
+export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: boolean; firstPrompt?: string; me: User }) {
   const router = useRouter();
   const canEdit = artifact.role === "owner" || artifact.role === "editor";
   const [width, setWidth] = useState(380);
@@ -68,7 +70,7 @@ export function Workspace({ artifact, tab, messages, demo, firstPrompt }: { arti
   const onStatus = useCallback((s: RoomStatus) => setStatus(s), []);
   const onSaving = useCallback((p: boolean) => setSaving(p), []);
 
-  const state = !tab ? null : status === "reconnecting" ? "Reconnecting" : status === "connecting" ? "Opening" : !canEdit ? null : saving ? "Saving" : "Saved";
+  const state = !tab || status === "revoked" || status === "failed" ? null : status === "reconnecting" ? "Reconnecting" : status === "connecting" ? "Opening" : !canEdit ? null : saving ? "Saving" : "Saved";
   return (
     <ChatProvider artifactId={artifact.id} initial={messages} onSettled={settled}>
       <div className="ui-ws" data-pane={pane} style={{ ["--chat-width" as string]: `${width}px` }}>
@@ -80,8 +82,8 @@ export function Workspace({ artifact, tab, messages, demo, firstPrompt }: { arti
           <span className="ui-ws-wide"><Working /></span>
           <span style={{ flex: 1 }} />
           <div className="ui-ws-switch"><Segmented label="Show" value={pane} onValueChange={setPane} options={[{ value: "chat", label: "Chat" }, { value: "doc", label: artifact.kind === "doc" ? "Doc" : "Slides" }]} /></div>
-          <Tooltip label="Sharing is built in the next milestone"><Button variant="secondary" size="sm" aria-disabled="true" onClick={(e) => e.preventDefault()}><IconPeople /> <span className="ui-ws-wide">Share</span></Button></Tooltip>
-          <Tooltip label="Export is built in the next milestone"><Button variant="secondary" size="sm" aria-disabled="true" onClick={(e) => e.preventDefault()}><IconDownload /> <span className="ui-ws-wide">Export</span></Button></Tooltip>
+          <ShareButton artifact={artifact} myEmail={me.email} />
+          {artifact.kind === "doc" ? <ExportButton artifactId={artifact.id} /> : <Tooltip label="Export for slides is not built yet"><Button variant="secondary" size="sm" aria-disabled="true" onClick={(e) => e.preventDefault()}><IconDownload /> <span className="ui-ws-wide">Export</span></Button></Tooltip>}
         </header>
         <div className="ui-ws-main">
           <div className="ui-ws-chat"><Chat canEdit={canEdit} demo={demo} kind={artifact.kind} firstPrompt={firstPrompt} /></div>

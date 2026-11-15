@@ -3,7 +3,7 @@
    updates stream down over SSE, local changes go up in small batches. Reconnects by itself. */
 import * as Y from "yjs";
 
-export type RoomStatus = "connecting" | "connected" | "reconnecting" | "failed";
+export type RoomStatus = "connecting" | "connected" | "reconnecting" | "failed" | "revoked";
 export type RoomConnection = { ydoc: Y.Doc; synced: Promise<void>; destroy(): void };
 
 const toB64 = (u: Uint8Array) => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
@@ -20,6 +20,8 @@ export function connectRoom(room: string, opts: { canWrite: boolean; onStatus?: 
   const es = new EventSource(`${url}?client=${client}`);
   es.addEventListener("sync", (e) => { if ((e as MessageEvent).data) Y.applyUpdate(ydoc, fromB64((e as MessageEvent).data), "remote"); failures = 0; opts.onStatus?.("connected"); resolveSynced(); });
   es.addEventListener("update", (e) => Y.applyUpdate(ydoc, fromB64((e as MessageEvent).data), "remote"));
+  // Access was removed while the document was open: stop, and say so.
+  es.addEventListener("revoked", () => { closed = true; es.close(); opts.onStatus?.("revoked"); });
   es.onerror = () => {
     if (closed) return;
     // EventSource retries on its own. A stream that never opens (signed out, no access) is a failure, not a reconnect.

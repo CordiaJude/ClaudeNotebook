@@ -7,7 +7,7 @@ import { parseMarkdown } from "@/lib/doc/markdown";
 import { docSchema } from "@/lib/doc/schema";
 import { initialUpdate } from "@/lib/doc/ydoc";
 import { localRooms } from "@/lib/rooms/local";
-import { DataError, canEdit, type Artifact, type Data, type Kind, type Message, type Role, type Run, type Tab, type Template, type User } from "./types";
+import { DataError, canEdit, type Artifact, type Data, type Kind, type Message, type Person, type Role, type Run, type ShareRole, type Tab, type Template, type User } from "./types";
 
 type Account = User & { hash: string };
 type ArtifactRow = { id: string; kind: Kind; title: string; ownerId: string; createdAt: string; updatedAt: string; deletedAt?: string; text: string };
@@ -16,10 +16,12 @@ type Store = {
   permissions: Map<string, Role>; // `${artifactId}:${userId}`
   chats: Map<string, Message[]>; // `${artifactId}:${userId}`
   runs: Map<string, Run>; usage: Map<string, number>; seeded: boolean;
+  invites: Map<string, ShareRole>; // `${artifactId}:${email}`
 };
 
 const g = globalThis as typeof globalThis & { __memoryData?: Store };
-const db: Store = (g.__memoryData ??= { users: new Map(), artifacts: new Map(), tabs: new Map(), permissions: new Map(), chats: new Map(), runs: new Map(), usage: new Map(), seeded: false });
+const db: Store = (g.__memoryData ??= { users: new Map(), artifacts: new Map(), tabs: new Map(), permissions: new Map(), chats: new Map(), runs: new Map(), usage: new Map(), seeded: false, invites: new Map() });
+db.invites ??= new Map();
 
 export const DAILY_RUNS = Number(process.env.AI_DAILY_RUNS ?? 60);
 export const DEMO = { email: "demo@draftly.test", password: "draftly-demo", name: "Jude Demo" };
@@ -87,6 +89,13 @@ export const memoryData: Data = {
     if ([...db.users.values()].some((u) => u.email === e)) throw new DataError("conflict", "An account with that email already exists. Sign in instead.");
     const u: Account = { id: randomUUID(), email: e, name: name.trim().slice(0, 80), hash: hash(password) };
     db.users.set(u.id, u);
+    // Invites waiting for this address become access. (The real accounts only do this for a confirmed address.)
+    for (const [key, role] of [...db.invites]) {
+      const [artifactId, addr] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+      if (addr !== e) continue;
+      db.invites.delete(key);
+      if (db.artifacts.get(artifactId) && !db.permissions.has(`${artifactId}:${u.id}`)) db.permissions.set(`${artifactId}:${u.id}`, role);
+    }
     return { id: u.id, email: u.email, name: u.name };
   },
   async signIn({ email, password }) {
@@ -138,6 +147,51 @@ export const memoryData: Data = {
   async roleOn(userId, artifactId) { seed(); return roleOf(userId, artifactId); },
   async templates(kind) { return TEMPLATES.filter((t) => !kind || t.kind === kind); },
 
+  async people(userId, artifactId) {
+    need(userId, artifactId, () => true, "");
+    const out: Person[] = [];
+    for (const [key, role] of db.permissions) {
+      if (!key.startsWith(`${artifactId}:`)) continue;
+      const u = db.users.get(key.slice(artifactId.length + 1));
+      if (u) out.push({ id: u.id, name: u.name, email: u.email, role });
+    }
+    for (const [key, role] of db.invites) if (key.startsWith(`${artifactId}:`)) { const email = key.slice(artifactId.length + 1); out.push({ id: null, name: email, email, role, pending: true }); }
+    const rank = (p: Person) => (p.role === "owner" ? 0 : p.pending ? 2 : 1);
+    return out.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  },
+  async shareByEmail(userId, artifactId, email, role) {
+    need(userId, artifactId, (r) => r === "owner", "Only the owner can share this.");
+    if (role !== "viewer" && role !== "editor") throw new DataError("invalid", "Choose view or edit access.");
+    const e = normal(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new DataError("invalid", "Enter a full email address.");
+    const target = [...db.users.values()].find((u) => u.email === e);
+    if (target?.id === userId) throw new DataError("invalid", "You already own this.");
+    if (target) { db.permissions.set(`${artifactId}:${target.id}`, role); return "shared"; }
+    db.invites.set(`${artifactId}:${e}`, role);
+    return "invited";
+  },
+  async setRole(userId, artifactId, email, role) {
+    need(userId, artifactId, (r) => r === "owner", "Only the owner can change access.");
+    if (role !== "viewer" && role !== "editor") throw new DataError("invalid", "Choose view or edit access.");
+    const e = normal(email);
+    const target = [...db.users.values()].find((u) => u.email === e);
+    if (target && db.permissions.get(`${artifactId}:${target.id}`) === "owner") throw new DataError("invalid", "The owner's access cannot be changed.");
+    if (target && db.permissions.has(`${artifactId}:${target.id}`)) db.permissions.set(`${artifactId}:${target.id}`, role);
+    else if (db.invites.has(`${artifactId}:${e}`)) db.invites.set(`${artifactId}:${e}`, role);
+    else throw new DataError("not_found", "That person does not have access.");
+  },
+  async removeAccess(userId, artifactId, email) {
+    const mine = roleOf(userId, artifactId);
+    if (!mine) throw new DataError("not_found", "That doc was not found, or it is not shared with you.");
+    const e = normal(email);
+    const target = [...db.users.values()].find((u) => u.email === e);
+    const self = target?.id === userId;
+    if (mine !== "owner" && !self) throw new DataError("forbidden", "Only the owner can remove people.");
+    if (target && db.permissions.get(`${artifactId}:${target.id}`) === "owner") throw new DataError("invalid", "The owner cannot be removed.");
+    if (target) db.permissions.delete(`${artifactId}:${target.id}`);
+    db.invites.delete(`${artifactId}:${e}`);
+  },
+
   async tabByRoom(room) { seed(); return [...db.tabs.values()].find((t) => t.room === room) ?? null; },
   async saveMirror(tabId, { text, title }) {
     const tab = db.tabs.get(tabId);
@@ -181,7 +235,7 @@ export const memoryData: Data = {
 
 /** Test helper: forget everything and seed again. */
 export function resetMemory() {
-  db.users.clear(); db.artifacts.clear(); db.tabs.clear(); db.permissions.clear(); db.chats.clear(); db.runs.clear(); db.usage.clear(); db.seeded = false;
+  db.users.clear(); db.artifacts.clear(); db.tabs.clear(); db.permissions.clear(); db.chats.clear(); db.runs.clear(); db.usage.clear(); db.invites.clear(); db.seeded = false;
   seed();
 }
 /** Test and demo helper: give someone a role on an artifact. Sharing itself is built in the Docs MVP milestone. */

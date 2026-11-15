@@ -302,18 +302,18 @@ const FORMATS: Record<Kind, { key: string; label: string }[]> = {
   deck: [{ key: "pptx", label: "PowerPoint (.pptx)" }, { key: "pdf", label: "PDF" }, { key: "html", label: "Web page (.html)" }, { key: "png", label: "This slide as PNG" }],
 };
 export type ExportState = { format: string; status: "working" | "done" | "error" };
-export function ExportList({ kind, state, onExport }: { kind: Kind; state?: ExportState; onExport?: (format: string) => void }) {
+export function ExportList({ kind, state, onExport, bare }: { kind: Kind; state?: ExportState; onExport?: (format: string) => void; bare?: boolean }) {
   return (
-    <div className="ui-pop" role="menu" aria-label="Export" style={{ width: 320, maxWidth: "100%", animation: "none" }}>
+    <div className={bare ? undefined : "ui-pop"} role="menu" aria-label="Export" style={{ width: 300, maxWidth: "100%", animation: "none" }}>
       {FORMATS[kind].map((f) => {
         const s = state?.format === f.key ? state.status : undefined;
         return (
-          <div key={f.key} role="menuitem" tabIndex={-1} className="ui-item" aria-disabled={state?.status === "working" ? true : undefined} aria-busy={s === "working" || undefined} onClick={() => onExport?.(f.key)}>
+          <button key={f.key} type="button" role="menuitem" className="ui-item" disabled={state?.status === "working"} aria-busy={s === "working" || undefined} onClick={() => onExport?.(f.key)}>
             <IconDownload /><span>{f.label}</span>
             <span className="ui-item-meta" role={s ? "status" : undefined}>
               {s === "working" ? <><span className="ui-spin" aria-hidden /> Preparing</> : s === "done" ? <><IconCheck /> Downloaded</> : s === "error" ? <span style={{ color: "var(--color-danger)", display: "inline-flex", gap: 6, alignItems: "center" }}><IconAlert /> Failed. Try again</span> : null}
             </span>
-          </div>
+          </button>
         );
       })}
     </div>

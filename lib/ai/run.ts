@@ -96,12 +96,17 @@ export async function startChatRun(req: ChatRequest, d: Deps): Promise<ReadableS
         emit({ type: "message", message: m });
       };
       let status: "done" | "stopped" | "awaiting_answers" | "error" = "done";
+      const usage = { input: 0, output: 0 };
       emit({ type: "start", runId: run.id, userMessage });
       try {
         let reply = "";
         for (let turn = 0; turn < MAX_TURNS; turn++) {
-          const t = await d.model.turn({ system: CHAT_SYSTEM, tools: CHAT_TOOLS, messages, signal: abort.signal, onText: (delta) => emit({ type: "text", delta }) });
-          messages.push({ role: "assistant", content: t.blocks });
+          const t = await d.model.turn({ system: CHAT_SYSTEM, tools: CHAT_TOOLS, messages, signal: abort.signal, effort: "medium", onText: (delta) => emit({ type: "text", delta }) });
+          usage.input += t.usage.input; usage.output += t.usage.output;
+          messages.push({ role: "assistant", content: t.blocks, raw: t.raw });
+          // A turn cut off by a length limit or declined by the model may carry half a tool call: never run those.
+          if (t.stop === "refused") { reply = "The AI declined this request. Nothing was changed by it."; break; }
+          if (t.stop === "limit") throw new Error("the model's reply was cut off before it finished");
           reply = t.blocks.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n").trim() || reply;
           const calls = t.blocks.filter((b) => b.type === "tool_use") as Extract<Block, { type: "tool_use" }>[];
           if (calls.length === 0) break;
@@ -129,7 +134,7 @@ export async function startChatRun(req: ChatRequest, d: Deps): Promise<ReadableS
         else { await keep({ kind: "error", text: `That did not go through.${kept}` }).catch(() => {}); emit({ type: "error", message: e instanceof Error ? e.message : "error" }); }
       } finally {
         active.delete(run.id);
-        await d.data.updateRun(run.id, { status, undo: ctx.undo, finishedAt: new Date().toISOString() }).catch(() => {});
+        await d.data.updateRun(run.id, { status, undo: ctx.undo, finishedAt: new Date().toISOString(), model: d.model.name, inputTokens: usage.input, outputTokens: usage.output }).catch(() => {});
         emit({ type: "done", status });
         open = false;
         try { controller.close(); } catch { /* already closed by the client */ }
@@ -160,10 +165,15 @@ export async function runSelectionEdit(req: { artifactId: string; scope: Scope; 
   const messages: Msg[] = [{ role: "user", content: `[Context]\nThe selection is ${sel.inline ? "part of one paragraph: reply with a single line" : "one or more whole blocks"}.\nText before it (do not change or repeat): ${JSON.stringify(sel.before)}\nText after it (do not change or repeat): ${JSON.stringify(sel.after)}\n[Selected text]\n<<<\n${sel.markdown}\n>>>\n[Instruction]\n${instruction}` }];
   const signal = d.signal ?? new AbortController().signal;
   let failure = "The AI did not change the selection.";
+  const usage = { input: 0, output: 0 };
+  const spent = () => ({ model: d.model.name, inputTokens: usage.input, outputTokens: usage.output });
   try {
     for (let turn = 0; turn < 3 && ctx.undo.length === 0; turn++) {
-      const t = await d.model.turn({ system: SELECTION_SYSTEM, tools: SELECTION_TOOLS, messages, signal });
-      messages.push({ role: "assistant", content: t.blocks });
+      const t = await d.model.turn({ system: SELECTION_SYSTEM, tools: SELECTION_TOOLS, messages, signal, effort: "low" });
+      usage.input += t.usage.input; usage.output += t.usage.output;
+      messages.push({ role: "assistant", content: t.blocks, raw: t.raw });
+      if (t.stop === "refused") { failure = "The AI declined this request. Nothing was changed."; break; }
+      if (t.stop === "limit") { failure = "The AI's reply was cut off. Nothing was changed. Try a shorter selection."; break; }
       const call = t.blocks.find((b) => b.type === "tool_use") as Extract<Block, { type: "tool_use" }> | undefined;
       if (!call) { failure = t.blocks.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ").trim() || failure; break; }
       if (signal.aborted) throw new DOMException("stopped", "AbortError");
@@ -177,8 +187,8 @@ export async function runSelectionEdit(req: { artifactId: string; scope: Scope; 
     if (signal.aborted) return { ok: false, message: "Stopped. Nothing was changed." };
     throw e;
   }
-  if (ctx.undo.length === 0) { await d.data.updateRun(run.id, { status: "error", finishedAt: new Date().toISOString() }); return { ok: false, message: failure }; }
-  await d.data.updateRun(run.id, { status: "done", undo: ctx.undo, finishedAt: new Date().toISOString() });
+  if (ctx.undo.length === 0) { await d.data.updateRun(run.id, { status: "error", finishedAt: new Date().toISOString(), ...spent() }); return { ok: false, message: failure }; }
+  await d.data.updateRun(run.id, { status: "done", undo: ctx.undo, finishedAt: new Date().toISOString(), ...spent() });
   const quote = s.text.replace(/\s+/g, " ").trim();
   const asked = await d.data.addMessage(d.user.id, req.artifactId, { role: "user", content: { kind: "text", text: `Edit “${quote.length > 60 ? quote.slice(0, 59) + "…" : quote}”: ${instruction}` } });
   const did = await d.data.addMessage(d.user.id, req.artifactId, { role: "assistant", content: { kind: "text", text: "Rewrote the selected text. Nothing else changed." }, runId: run.id, undoable: true });

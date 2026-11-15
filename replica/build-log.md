@@ -2,7 +2,7 @@
 
 Step 3 of the Replica pack (`/replica-build`). One line per screen, then what changed from the plan and what was harder than expected.
 
-Status on 2026-11-15: **the foundation and the first slice (F01 + F02) are built. The build step is not finished.** 4 of 14 screens are done, 2 are partly done, 8 are routes with a plain "not built yet" page or a disabled button.
+Status on 2026-11-15: **the foundation, the first slice (F01 + F02), sharing and export are built. The build step is not finished.** 6 of 14 screens are done, 2 are partly done, 6 are routes with a plain "not built yet" page or a disabled button.
 
 Everything runs with no outside service: accounts and documents are held in the server's memory (`lib/data/memory.ts`), live documents sync through a small local transport (`lib/rooms`), and the AI is a scripted stand-in (`lib/ai/scripted.ts`) that follows the real tool contract with canned text. The UI labels it "Demo AI". `/replica-backend` replaces all three behind the same interfaces.
 
@@ -13,13 +13,13 @@ Everything runs with no outside service: accounts and documents are held in the 
 | S01 | Sign in / sign up | 2026-11-15 | done | Google button is shown disabled (needs the real accounts). States: empty, error, loading |
 | S02 | Library | 2026-11-15 | done | States: empty, filled, no matches, loading, error. Owner menu: rename, delete |
 | S03 | Template picker | 2026-11-15 | partial | A template row on the library (4 doc templates). No dialog, no deck templates |
-| S04 | Workspace: chat + editor | 2026-11-15 | done | States: idle, questions, drafting, stopped, error, phone (stacked). Share and Export buttons are disabled |
+| S04 | Workspace: chat + editor | 2026-11-15 | done | States: idle, questions, drafting, stopped, error, phone (stacked), access removed while open |
 | S05 | Doc editor | 2026-11-15 | done | States: empty, drafting, filled, read-only, reconnecting, failed. No tabs, comments, images or charts yet |
 | S06 | Comments | - | not built | Comment button in the selection menu is disabled |
 | S07 | Slide editor | - | not built | Decks can be created and listed; opening one says the editor is not built |
 | S08 | Present | - | route only | `/a/:id/present` says it is not built |
-| S09 | Share dialog | - | not built | Button disabled. The design-system component exists |
-| S10 | Export menu | - | not built | Button disabled. The design-system component exists |
+| S09 | Share dialog | 2026-11-15 | done | States: private, shared, invited (no account yet), error, loading, read-only for non-owners (with Leave). No link sharing yet (a "should"). No email is sent |
+| S10 | Export menu | 2026-11-15 | done for docs | Word, PDF, Markdown. States: idle, working, done, error. Deck formats wait for slides |
 | S11 | Design system setup | - | route only | `/settings/design-system` |
 | S12 | Shared view page | 2026-11-15 | partial | A doc shared with you opens with your role (read-only for a viewer). The link route `/s/:token` is a placeholder |
 | S13 | Change attribution | - | not built | Each AI run is already recorded with who asked |
@@ -38,8 +38,8 @@ Screenshots of every built state: `replica/clone-screens/`.
 
 ## Tests
 
-- 74 unit tests. They cover the document core, the whole AI pipeline without a browser (draft, Stop, a person typing during a draft, permissions, selection edits, undo, the daily allowance), and a 3,000-run randomised test that a selection edit never changes text outside the selection.
-- 25 browser tests, driving the real app: sign in, library, F01, F02, permissions, phone layout, accessibility.
+- 96 unit tests. They cover the document core, the whole AI pipeline without a browser (draft, Stop, a person typing during a draft, permissions, selection edits, undo, the daily allowance), sharing rules, the exported files, the model connection (with a recorder in place of the network), and a 3,000-run randomised test that a selection edit never changes text outside the selection.
+- 29 browser tests, driving the real app: sign in, library, F01, F02, permissions, sharing between two people, export downloads, phone layout, accessibility.
 - Not tested, because it does not exist yet: anything against a real database, realtime host or model.
 
 ## Changes from the plan (architecture.md)
@@ -58,8 +58,21 @@ Screenshots of every built state: `replica/clone-screens/`.
 - **Replacing a selection across paragraphs** without disturbing its neighbours. The fix was to stop trusting the editor library's fitting and to check the result: the server compares everything before and after the range, ignoring ids, and refuses any replacement that changed either.
 - **Titles.** The library title follows the document's title only while the doc is still "Untitled". After that only the owner renames it, so an editor typing in the page cannot rename the doc.
 
+## Added on 2026-11-15, after the first slice was merged
+
+- **Sharing (S09).** Share by email with view or edit access, change it, remove people, leave. An address with no account is recorded as an invite and gets access when that person signs up with it. If access is removed while someone has the doc open, their page stops updating within seconds and says why.
+- **Export (S10).** Word, PDF and Markdown, built on the server from the live document. The Word file was opened in LibreOffice and its headings, table, lists and link are real Word structures. PDF uses headless Chromium: proven locally, not yet on the serverless host.
+- **The real model connection** (`lib/ai/anthropic.ts`). Written against the current API reference and unit-tested with a recorder in place of the network: request shape, replaying its own reasoning blocks, refusals, cut-off replies, malformed tool input. **It has never run against the real API**: the only key in this environment is not a model key (the API rejects it). `pnpm eval:ai` runs F01, F02, a chat edit, undo and a permission check against the real model as soon as `AI_API_KEY` is set.
+- **Tool input is now checked against its schema before anything runs**, and a reply that was cut off or declined never runs its tool calls.
+
+## Blocked on the owner
+
+1. **A model API key**, set as `AI_API_KEY` in this environment and on the host. Then `pnpm eval:ai` proves the drafting and selection contract with a real model.
+2. **A database.** The Supabase organisation is on the free plan and already holds its two projects, both for other products. The Supabase address configured in this environment does not answer. Needs a free slot, a paid plan, or another account.
+3. **A decision on realtime.** The plan named Liveblocks. An alternative with no extra vendor is to keep live documents in the same Postgres database and use its realtime channel; it also puts the AI's writes under the database's own access rules.
+
 ## Not done in this step, said plainly
 
-- 8 of the 20 must-haves are not started: share by email, export doc, export deck, and all five slide features.
-- 7 must-haves are partial: they work, on demo data or with the scripted model.
-- 5 must-haves are done: library, chat beside the editor, rich text, owner-only rename and delete, AI acts with the asker's permissions.
+- 6 of the 20 must-haves are not started: export deck, and all five slide features.
+- 8 must-haves are partial: they work, on demo data or with the scripted model.
+- 6 must-haves are done: library, chat beside the editor, rich text, private by default, owner-only rename and delete, AI acts with the asker's permissions.

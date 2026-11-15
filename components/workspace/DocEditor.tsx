@@ -1,6 +1,7 @@
 "use client";
 /* S05: the document editor. A live Yjs document bound to Tiptap, with the toolbar, the selection menu,
    "Edit with AI", the slash menu and the table bar. Read-only for viewers and commenters. */
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
@@ -194,6 +195,7 @@ export function DocEditor({ room, artifactId, role, onStatus, onSaving }: { room
     return () => { alive = false; setYdoc(null); conn.destroy(); };
   }, [room, canWrite, onStatus, onSaving]);
 
+  if (status === "revoked") return <Banner tone="error" icon={<IconAlert />} action={<Button asChild variant="ghost" size="sm"><Link href="/library">Library</Link></Button>}>Your access to this document was removed.</Banner>;
   if (status === "failed") return <Banner tone="error" icon={<IconAlert />} action={<Button variant="ghost" size="sm" onClick={() => window.location.reload()}>Reload</Button>}>This document could not be opened. Check your connection, then reload.</Banner>;
   return (
     <>

@@ -5,13 +5,15 @@ export type Block =
   | { type: "text"; text: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
-export type Msg = { role: "user" | "assistant"; content: string | Block[] };
-export type Turn = { blocks: Block[]; stop: "end" | "tool" | "limit" | "refused"; usage: { input: number; output: number } };
+/** `raw` is the provider's own copy of an assistant turn (for example its reasoning blocks), replayed to it unchanged. */
+export type Msg = { role: "user" | "assistant"; content: string | Block[]; raw?: unknown };
+export type Turn = { blocks: Block[]; stop: "end" | "tool" | "limit" | "refused"; usage: { input: number; output: number }; raw?: unknown };
+export type Effort = "low" | "medium" | "high";
 export interface Model {
   name: string;
   /** True for the stand-in. The UI says so, so nobody mistakes canned text for a real model. */
   demo: boolean;
-  turn(req: { system: string; tools: ToolDef[]; messages: Msg[]; signal: AbortSignal; onText?: (delta: string) => void }): Promise<Turn>;
+  turn(req: { system: string; tools: ToolDef[]; messages: Msg[]; signal: AbortSignal; effort?: Effort; onText?: (delta: string) => void }): Promise<Turn>;
 }
 
 /** What the server streams to the chat panel, one JSON object per SSE `data:` line. */

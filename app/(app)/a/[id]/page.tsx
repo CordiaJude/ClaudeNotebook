@@ -26,5 +26,5 @@ export default async function WorkspacePage({ params, searchParams }: Props) {
   const found = await getData().getArtifact(user.id, id);
   if (!found) notFound();
   const messages = await getData().messages(user.id, id);
-  return <Workspace artifact={found.artifact} tab={found.tabs[0] ?? null} messages={messages} demo={getModel().demo} firstPrompt={prompt?.slice(0, 8000)} />;
+  return <Workspace artifact={found.artifact} tab={found.tabs[0] ?? null} messages={messages} demo={getModel().demo} firstPrompt={prompt?.slice(0, 8000)} me={user} />;
 }

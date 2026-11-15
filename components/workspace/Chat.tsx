@@ -57,7 +57,7 @@ export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; d
         {demo ? <Badge tone="guest">Demo AI</Badge> : null}
       </div>
       <div className="ui-msgs ui-chat-log" role="log" aria-live="polite" aria-label="Conversation">
-        {demo ? <p className="ui-hint">This is a scripted stand-in with canned writing. A real model is connected in the backend step.</p> : null}
+        {demo ? <p className="ui-hint">This is a scripted stand-in with canned writing. A real model takes over once a model key is set.</p> : null}
         {chat.messages.length === 0 && !chat.running ? (
           usable ? (
             <div className="ui-stack">
