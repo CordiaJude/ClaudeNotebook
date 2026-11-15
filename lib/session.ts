@@ -1,11 +1,17 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getData, type User } from "@/lib/data";
 
 const COOKIE = "session";
-const secret = () => process.env.SESSION_SECRET ?? "dev-only-secret-change-me";
+// SESSION_SECRET should be set on any real host. Without it, another server-only secret is used as key material,
+// so cookies still cannot be forged on a deployment that has one; plain local development falls back to a fixed string.
+const secret = () => {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const other = process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY;
+  return other ? createHash("sha256").update(`session:${other}`).digest("hex") : "dev-only-secret-change-me";
+};
 const sign = (id: string) => createHmac("sha256", secret()).update(id).digest("hex");
 
 export async function startSession(userId: string) {

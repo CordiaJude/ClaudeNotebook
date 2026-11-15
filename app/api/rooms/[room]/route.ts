@@ -9,6 +9,7 @@ import { currentUser } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64");
 
 async function access(room: string) {

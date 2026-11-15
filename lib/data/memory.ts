@@ -43,8 +43,11 @@ function docFor(title: string, markdown: string) {
   return withIds(s.nodes.doc!.create(null, Fragment.from([s.nodes.title!.create(null, title ? s.text(title) : null), ...body])));
 }
 
-function addArtifact(ownerId: string, kind: Kind, title: string, markdown: string, at = now()): { row: ArtifactRow; tab: Tab } {
-  const id = randomUUID(), tabId = randomUUID();
+/** Seed data uses fixed ids, so a session and a link stay valid when the server process is replaced. */
+const fixed = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+function addArtifact(ownerId: string, kind: Kind, title: string, markdown: string, at = now(), seedNo?: number): { row: ArtifactRow; tab: Tab } {
+  const id = seedNo ? fixed(seedNo) : randomUUID(), tabId = seedNo ? fixed(seedNo + 500) : randomUUID();
   const row: ArtifactRow = { id, kind, title: title || "Untitled", ownerId, createdAt: at, updatedAt: at, text: markdown.replace(/[#*|>-]/g, " ").replace(/\s+/g, " ").trim() };
   const tab: Tab = { id: tabId, artifactId: id, title: "Main", position: "a0", room: `a:${id}:t:${tabId}` };
   db.artifacts.set(id, row); db.tabs.set(tabId, tab); db.permissions.set(`${id}:${ownerId}`, "owner");
@@ -55,15 +58,15 @@ function addArtifact(ownerId: string, kind: Kind, title: string, markdown: strin
 function seed() {
   if (db.seeded) return;
   db.seeded = true;
-  const mk = (email: string, name: string, password: string): Account => { const u = { id: randomUUID(), email, name, hash: hash(password) }; db.users.set(u.id, u); return u; };
-  const me = mk(DEMO.email, DEMO.name, DEMO.password);
-  const priya = mk("priya@draftly.test", "Priya Shah", "draftly-demo");
+  const mk = (n: number, email: string, name: string, password: string): Account => { const u = { id: fixed(n), email, name, hash: hash(password) }; db.users.set(u.id, u); return u; };
+  const me = mk(1, DEMO.email, DEMO.name, DEMO.password);
+  const priya = mk(2, "priya@draftly.test", "Priya Shah", "draftly-demo");
   const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
-  addArtifact(me.id, "doc", "Q1 launch plan", "The launch moves to **4 March** because the supplier is two weeks late. The date is firm if the parts arrive by 20 February.\n\n## Timeline\n\n| Date | Milestone | Owner |\n|---|---|---|\n| 20 February | Parts arrive | Priya |\n| 27 February | Final test | Sam |\n| 4 March | Launch | Jude |\n\n## Risks\n\n- A second supplier delay pushes the launch to April.\n- The test window is one week, with no slack.", ago(2));
-  addArtifact(me.id, "deck", "Board update", "", ago(26));
-  const offsite = addArtifact(priya.id, "doc", "Team offsite notes", "We agreed to hold the offsite in May, in Lisbon, for two days.\n\n## Decisions\n\n- Two days, not three.\n- Budget is capped at 12,000.\n\n## Actions\n\n- [ ] Book the venue\n- [ ] Send the survey", ago(50));
+  addArtifact(me.id, "doc", "Q1 launch plan", "The launch moves to **4 March** because the supplier is two weeks late. The date is firm if the parts arrive by 20 February.\n\n## Timeline\n\n| Date | Milestone | Owner |\n|---|---|---|\n| 20 February | Parts arrive | Priya |\n| 27 February | Final test | Sam |\n| 4 March | Launch | Jude |\n\n## Risks\n\n- A second supplier delay pushes the launch to April.\n- The test window is one week, with no slack.", ago(2), 101);
+  addArtifact(me.id, "deck", "Board update", "", ago(26), 102);
+  const offsite = addArtifact(priya.id, "doc", "Team offsite notes", "We agreed to hold the offsite in May, in Lisbon, for two days.\n\n## Decisions\n\n- Two days, not three.\n- Budget is capped at 12,000.\n\n## Actions\n\n- [ ] Book the venue\n- [ ] Send the survey", ago(50), 103);
   db.permissions.set(`${offsite.row.id}:${me.id}`, "viewer");
-  const hiring = addArtifact(priya.id, "doc", "Hiring plan", "We hire two engineers and one designer this half.\n\n## Roles\n\n1. Senior engineer, platform\n2. Engineer, editor\n3. Product designer", ago(75));
+  const hiring = addArtifact(priya.id, "doc", "Hiring plan", "We hire two engineers and one designer this half.\n\n## Roles\n\n1. Senior engineer, platform\n2. Engineer, editor\n3. Product designer", ago(75), 104);
   db.permissions.set(`${hiring.row.id}:${me.id}`, "editor");
 }
 
@@ -235,6 +238,7 @@ export const memoryData: Data = {
 
 /** Test helper: forget everything and seed again. */
 export function resetMemory() {
+  for (const t of db.tabs.values()) localRooms.drop(t.room);
   db.users.clear(); db.artifacts.clear(); db.tabs.clear(); db.permissions.clear(); db.chats.clear(); db.runs.clear(); db.usage.clear(); db.invites.clear(); db.seeded = false;
   seed();
 }

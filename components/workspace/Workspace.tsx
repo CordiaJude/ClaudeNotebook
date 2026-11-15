@@ -52,7 +52,7 @@ function Title({ artifact }: { artifact: Artifact }) {
   );
 }
 
-export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: boolean; firstPrompt?: string; me: User }) {
+export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: "no-key" | "public-demo" | null; firstPrompt?: string; me: User }) {
   const router = useRouter();
   const canEdit = artifact.role === "owner" || artifact.role === "editor";
   const [width, setWidth] = useState(380);

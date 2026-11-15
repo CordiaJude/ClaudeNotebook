@@ -149,7 +149,7 @@ export function scriptedModel(opts: { wordMs?: number; toolMs?: number } = {}): 
         return call(toolCall("lay_out_document", { title: cap(subject), sections: planFor(subject, long).map((s) => ({ ...(s.heading ? { heading: s.heading } : {}), intent: s.intent })) }));
       }
       const ask = request.trim();
-      const section = /add (?:a |an |another )?(?:new )?(?:section|part|paragraph)(?: (?:on|about|for|called|covering))? (.+)/i.exec(ask)?.[1] ?? /add (?:a |an )?(.+?) section/i.exec(ask)?.[1];
+      const section = /add .*?\b(?:section|part|paragraph)\b.*?\b(?:called|titled|named) ["“]?(.+?)["”]?(?= with\b| that\b| which\b|[.!?,]|$)/i.exec(ask)?.[1] ?? /add (?:a |an |another )?(?:new )?(?:section|part|paragraph)(?: (?:on|about|for|called|covering))? (.+)/i.exec(ask)?.[1] ?? /add (?:a |an )?(.+?) section/i.exec(ask)?.[1];
       if (section) { const h = cap(section.replace(/[.!?]+$/, "")); return call(toolCall("insert_blocks", { position: "end", markdown: `## ${h}\n\nThis section covers ${section.replace(/[.!?]+$/, "").toLowerCase()}: the current state, what should change, and who owns it.` })); }
       const title = /(?:rename (?:it |this )?to|call it|title it) (.+)/i.exec(ask)?.[1];
       if (title) return call(toolCall("set_title", { title: title.replace(/^["“]|["”.]+$/g, "") }));

@@ -26,7 +26,7 @@ function Bubble({ m, onUndo, onAnswer, live }: { m: Message; onUndo: (runId: str
   );
 }
 
-export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; demo: boolean; kind: "doc" | "deck"; firstPrompt?: string }) {
+export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; demo: "no-key" | "public-demo" | null; kind: "doc" | "deck"; firstPrompt?: string }) {
   const chat = useChat();
   const end = useRef<HTMLDivElement>(null);
   const sent = useRef(false);
@@ -57,7 +57,7 @@ export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; d
         {demo ? <Badge tone="guest">Demo AI</Badge> : null}
       </div>
       <div className="ui-msgs ui-chat-log" role="log" aria-live="polite" aria-label="Conversation">
-        {demo ? <p className="ui-hint">This is a scripted stand-in with canned writing. A real model takes over once a model key is set.</p> : null}
+        {demo ? <p className="ui-hint">{demo === "public-demo" ? "This is a scripted stand-in with canned writing. The real model is switched off on the public site until real accounts replace the demo sign-in." : "This is a scripted stand-in with canned writing. A real model takes over once a model key is set."}</p> : null}
         {chat.messages.length === 0 && !chat.running ? (
           usable ? (
             <div className="ui-stack">

@@ -65,9 +65,17 @@ Screenshots of every built state: `replica/clone-screens/`.
 - **The real model connection** (`lib/ai/anthropic.ts`). Written against the current API reference and unit-tested with a recorder in place of the network: request shape, replaying its own reasoning blocks, refusals, cut-off replies, malformed tool input. **It has never run against the real API**: the only key in this environment is not a model key (the API rejects it). `pnpm eval:ai` runs F01, F02, a chat edit, undo and a permission check against the real model as soon as `AI_API_KEY` is set.
 - **Tool input is now checked against its schema before anything runs**, and a reply that was cut off or declined never runs its tool calls.
 
+## Added later on 2026-11-15: getting ready to prove the real model
+
+- The model key is read from `AI_API_KEY` or `ANTHROPIC_API_KEY`.
+- **Guard for the public site.** While sign-in is the demo kind (one published demo account), the production site keeps the scripted AI even when a key is set, so a stranger cannot spend it. Previews and local runs use the real model. `ALLOW_PUBLIC_DEMO_AI=1` overrides this. Covered by `tests/unit/evals.test.ts`.
+- **Live check in one request.** `GET /api/eval?token=...&scenario=draft|selection|edit` runs one real flow against the real model on in-memory documents and returns pass/fail per check, the document it produced and the tokens used. It answers 404 on production and without the token; only a hash of the token is in the repository. The same checks run locally with `pnpm eval:ai`, and against the scripted model in the unit tests. Calling it resets that server instance's demo data.
+- Demo accounts and seed documents have fixed ids, so a session and a link survive a server restart. The library says plainly that storage is demo storage.
+- The session cookie is signed with `SESSION_SECRET`, or failing that a value derived from the model key, never the built-in default on a host that has a key.
+
 ## Blocked on the owner
 
-1. **A model API key**, set as `AI_API_KEY` in this environment and on the host. Then `pnpm eval:ai` proves the drafting and selection contract with a real model.
+1. **Access to the Vercel team**, so the live check can be called on the protected preview where the model key lives. Until then the real model has still never run: the provider is tested against a mocked SDK only.
 2. **A database.** The Supabase organisation is on the free plan and already holds its two projects, both for other products. The Supabase address configured in this environment does not answer. Needs a free slot, a paid plan, or another account.
 3. **A decision on realtime.** The plan named Liveblocks. An alternative with no extra vendor is to keep live documents in the same Postgres database and use its realtime channel; it also puts the AI's writes under the database's own access rules.
 

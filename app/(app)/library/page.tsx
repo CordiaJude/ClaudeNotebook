@@ -3,11 +3,11 @@ import Link from "next/link";
 import { AppHeader } from "@/components/library/AppHeader";
 import { CardMenu, LibraryFilters } from "@/components/library/Controls";
 import { NewFromPrompt, Templates } from "@/components/library/NewFromPrompt";
-import { EmptyState, LibraryCard } from "@/components/doc/parts";
+import { Banner, EmptyState, LibraryCard } from "@/components/doc/parts";
 import { Button } from "@/components/ui/button";
 import { IconDoc, IconSearch } from "@/components/ui/icons";
 import { BRAND } from "@/lib/brand";
-import { getData } from "@/lib/data";
+import { DATA_MODE, getData } from "@/lib/data";
 import { flushMirrors } from "@/lib/rooms";
 import { requireUser } from "@/lib/session";
 
@@ -37,6 +37,7 @@ export default async function Library({ searchParams }: { searchParams: Promise<
     <>
       <AppHeader user={user} />
       <main className="ui-lib">
+        {DATA_MODE === "demo" ? <Banner tone="warning">Demo storage: accounts and documents live in the server&apos;s memory and can reset at any time. Nothing here is kept.</Banner> : null}
         <section aria-label="Start something new" className="ui-lib-new">
           <h1 className="ui-h1" style={{ margin: 0 }}>What are you writing, {user.name.split(" ")[0]}?</h1>
           <NewFromPrompt />
