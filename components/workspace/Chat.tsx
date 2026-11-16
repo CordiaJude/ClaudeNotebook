@@ -9,6 +9,7 @@ import type { Message } from "@/lib/data/types";
 import { useChat } from "./chat-store";
 
 const EXAMPLES = ["Write a one-page plan for our Q1 launch", "Draft a memo on moving to a four-day week", "Write a short update on last month's results"];
+const DECK_EXAMPLES = ["Make a deck about moving our weekly meeting to written updates", "A five-slide pitch for a new onboarding flow", "Turn our quarter into a board update"];
 
 function Bubble({ m, onUndo, onAnswer, live }: { m: Message; onUndo: (runId: string) => void; onAnswer: (id: string, v: Record<string, string> | "skipped") => void; live: boolean }) {
   const c = m.content;
@@ -26,7 +27,7 @@ function Bubble({ m, onUndo, onAnswer, live }: { m: Message; onUndo: (runId: str
   );
 }
 
-export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; demo: boolean; kind: "doc" | "deck"; firstPrompt?: string }) {
+export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; demo: "no-key" | "public-demo" | null; kind: "doc" | "deck"; firstPrompt?: string }) {
   const chat = useChat();
   const end = useRef<HTMLDivElement>(null);
   const sent = useRef(false);
@@ -47,7 +48,8 @@ export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; d
     else setUndoError(r.message ?? "That could not be undone.");
   };
   const lastQuestions = chat.messages.findLast((m) => m.content.kind === "questions");
-  const usable = canEdit && kind === "doc";
+  const usable = canEdit;
+  const deck = kind === "deck";
 
   return (
     <section className="ui-chat" aria-label="Chat">
@@ -57,14 +59,14 @@ export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; d
         {demo ? <Badge tone="guest">Demo AI</Badge> : null}
       </div>
       <div className="ui-msgs ui-chat-log" role="log" aria-live="polite" aria-label="Conversation">
-        {demo ? <p className="ui-hint">This is a scripted stand-in with canned writing. A real model is connected in the backend step.</p> : null}
+        {demo ? <p className="ui-hint">{demo === "public-demo" ? "This is a scripted stand-in with canned writing. The real model is switched off on the public site until real accounts replace the demo sign-in." : "This is a scripted stand-in with canned writing. A real model takes over once a model key is set."}</p> : null}
         {chat.messages.length === 0 && !chat.running ? (
           usable ? (
             <div className="ui-stack">
-              <p className="ui-caption" style={{ margin: 0 }}>Say what you need and the draft appears in the page. You can keep typing in the page while it works.</p>
-              {EXAMPLES.map((x) => <button key={x} className="ui-option" style={{ height: "auto", padding: "6px 12px", textAlign: "left", justifySelf: "start" }} onClick={() => chat.send(x)}>{x}</button>)}
+              <p className="ui-caption" style={{ margin: 0 }}>{deck ? "Say what the deck is for and the slides appear one by one, each with speaker notes. You can edit any slide while it works." : "Say what you need and the draft appears in the page. You can keep typing in the page while it works."}</p>
+              {(deck ? DECK_EXAMPLES : EXAMPLES).map((x) => <button key={x} className="ui-option" style={{ height: "auto", padding: "6px 12px", textAlign: "left", justifySelf: "start" }} onClick={() => chat.send(x)}>{x}</button>)}
             </div>
-          ) : <p className="ui-caption" style={{ margin: 0 }}>{kind === "deck" ? "AI drafting for slides is built in the Slides milestone." : "You can read this document. The AI works for people who can edit it."}</p>
+          ) : <p className="ui-caption" style={{ margin: 0 }}>{deck ? "You can view this deck. The AI works for people who can edit it." : "You can read this document. The AI works for people who can edit it."}</p>
         ) : null}
         {chat.messages.map((m) => <Bubble key={m.id} m={m} live={!chat.running && m.id === lastQuestions?.id && m === chat.messages.at(-1)} onUndo={(id) => void undo(id)} onAnswer={chat.answer} />)}
         {chat.progress.map((p, i) => <ProgressLine key={i} label={p.label} done={p.done} />)}
@@ -75,9 +77,9 @@ export function Chat({ canEdit, demo, kind, firstPrompt }: { canEdit: boolean; d
         <div ref={end} />
       </div>
       <div className="ui-composer">
-        <PromptBox placeholder={chat.messages.length ? "Ask for a change" : "What do you want to write?"} disabled={!usable} running={chat.running} onSubmit={(t) => chat.send(t)} onStop={chat.stop} />
+        <PromptBox placeholder={chat.messages.length ? "Ask for a change" : deck ? "What is the deck about?" : "What do you want to write?"} disabled={!usable} running={chat.running} onSubmit={(t) => chat.send(t)} onStop={chat.stop} />
       </div>
-      <ControlledDialog open={!!conflict} onOpenChange={(o) => { if (!o) setConflict(null); }} title="This was edited since" description="Someone changed the text the AI wrote. Undoing will replace their version too.">
+      <ControlledDialog open={!!conflict} onOpenChange={(o) => { if (!o) setConflict(null); }} title="This was edited since" description={deck ? "Someone changed slides the AI wrote. Undoing will replace their version too." : "Someone changed the text the AI wrote. Undoing will replace their version too."}>
         <ul className="ui-caption" style={{ margin: "0 0 16px", paddingLeft: 18 }}>{conflict?.blocks.map((b) => <li key={b}>“{b}”</li>)}</ul>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button variant="secondary" onClick={() => setConflict(null)}>Keep it</Button>

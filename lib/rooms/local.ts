@@ -26,6 +26,8 @@ export const localRooms: RoomStore & {
   subscribe(room: string, fn: Listener): () => void;
   /** Called after any room changes (used to keep the searchable copy fresh). */
   watch(fn: (room: string) => void): void;
+  /** Forget a room entirely (resetting the demo data). */
+  drop(room: string): void;
 } = {
   async read(room) { return state.rooms.get(room)?.state ?? null; },
   async create(room, initial) {
@@ -46,4 +48,5 @@ export const localRooms: RoomStore & {
     return () => r.listeners.delete(fn);
   },
   watch(fn) { state.watchers.add(fn); },
+  drop(room) { state.rooms.delete(room); },
 };

@@ -2,7 +2,8 @@ import { expect, type Page } from "@playwright/test";
 
 export async function signIn(page: Page, to = "/library") {
   await page.goto(`/login?next=${encodeURIComponent(to)}`);
-  await page.getByRole("button", { name: "Use the demo account" }).click();
+  // Already signed in: the sign-in page sends us straight on.
+  if (new URL(page.url()).pathname === "/login") await page.getByRole("button", { name: "Use the demo account" }).click();
   await page.waitForURL((u) => u.pathname === to.split("?")[0]);
 }
 export const doc = (page: Page) => page.getByRole("textbox", { name: "Document" });

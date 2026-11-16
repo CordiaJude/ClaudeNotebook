@@ -69,6 +69,20 @@ export function rewrite(text: string, instruction: string): string {
   return `${flat.replace(/[.!?]+$/, "")} (revised).`;
 }
 
+/** The demo's canned deck: a short one and a longer one. Layout, words and speaker notes for each slide. */
+type DemoSlide = { layout: string; title: string; intent: string; fill: (subject: string, audience: string) => Record<string, string> };
+const DECK: DemoSlide[] = [
+  { layout: "title", title: "", intent: "The title and who it is for", fill: (s, a) => ({ title: cap(s), subtitle: `For ${a}`, notes: "Open by saying why this matters now. One sentence, then move on." }) },
+  { layout: "bullets", title: "Where we are today", intent: "The current state in three points", fill: () => ({ title: "Where we are today", body: "- The current approach works, but slowly\n- Volume grew faster than the team\n- Two steps are still done by hand", notes: "Keep this short. The audience knows most of it; name the two manual steps, because the rest of the talk is about them." }) },
+  { layout: "big-number", title: "The number that matters", intent: "The one figure behind the case", fill: () => ({ number: "6 days", label: "Average time to finish, today", body: "The target is four.", notes: "Pause on the number. Then say where it comes from and that four days is the goal for next quarter." }) },
+  { layout: "section", title: "The plan", intent: "A break before the plan", fill: () => ({ title: "The plan", subtitle: "Three steps, in order", notes: "Signal the change of pace: from the problem to what we will do about it." }) },
+  { layout: "two-column", title: "Two options", intent: "The choice, side by side", fill: () => ({ title: "Two options", left: "- **Fix the two manual steps**\n- Six weeks\n- No new tools", right: "- **Replace the whole flow**\n- Five months\n- New vendor", notes: "Say plainly that the first option is the recommendation, and why: it is faster and it can be undone." }) },
+  { layout: "quote", title: "What the team says", intent: "One sentence from the people doing the work", fill: () => ({ quote: "We lose a day every week waiting for a step nobody owns.", attribution: "Team lead, operations", notes: "Read the quote aloud, then stop for a second. It makes the case better than a chart." }) },
+  { layout: "bullets", title: "Timeline", intent: "The milestones with dates", fill: () => ({ title: "Timeline", body: "- Week 1: scope agreed\n- Week 3: first step automated\n- Week 6: both steps live", notes: "Walk through the dates once. Mention that week 3 is the first point where the result is visible." }) },
+  { layout: "closing", title: "Next steps", intent: "The ask", fill: () => ({ title: "Next steps", body: "- Approve option one this week\n- Name one owner\n- Review the result in six weeks", notes: "End on the ask. Say what you need from the room today, and stop." }) },
+];
+const deckPlan = (long: boolean) => (long ? DECK : [DECK[0]!, DECK[1]!, DECK[2]!, DECK[4]!, DECK[7]!]);
+
 let seq = 0;
 const toolCall = (name: string, input: Record<string, unknown>): Block => ({ type: "tool_use", id: `demo_${++seq}`, name, input });
 
@@ -97,6 +111,50 @@ export function scriptedModel(opts: { wordMs?: number; toolMs?: number } = {}): 
         if (lastCall) return lastResult?.is_error ? say(lastResult.content) : say("Rewrote the selection.");
         const selected = part(userText, "Selected text").replace(/^<<<\n?/, "").replace(/\n?>>>$/, "");
         return call(toolCall("replace_selection", { text: rewrite(selected, part(userText, "Instruction")) }));
+      }
+
+      // ---- a deck: questions, a plan, then one slide per call, each with its speaker notes
+      if (tools.some((t) => t.name === "lay_out_deck")) {
+        const ctxText = part(userText, "Context"), answers = part(userText, "Answers");
+        const req = part(userText, "Request") || [...messages].reverse().map(textOf).map((t) => part(t, "Request")).find(Boolean) || "";
+        const subject = subjectOf(req).replace(/^(deck|presentation|slides?)\s+(about|on|for)\s+/i, "").replace(/\s+(deck|presentation|slides)$/i, "") || "new deck";
+        if (lastCall) {
+          if (lastResult?.is_error && lastCall.name !== "write_slide") return say(`I could not make that change. ${lastResult.content.split("\n")[0]}`);
+          if (lastCall.name === "lay_out_deck" || lastCall.name === "write_slide") {
+            const laid = calls.find((c) => c.name === "lay_out_deck");
+            const ids = [...(results.find((r) => r.tool_use_id === laid?.id)?.content ?? "").matchAll(/slide_id (\S+):/g)].map((m) => m[1]!);
+            const done = new Set(calls.filter((c) => c.name === "write_slide").map((c) => String(c.input.slide_id)));
+            const next = ids.find((id) => !done.has(id));
+            if (!next) return say(`Drafted ${ids.length} slides, each with speaker notes. Ask for a change here, or edit any slide by hand.`);
+            const plan = deckPlan(ids.length > 5);
+            const sl = plan[ids.indexOf(next)] ?? plan.at(-1)!;
+            const audience = /audience: (.+)/i.exec(messages.map(textOf).join("\n"))?.[1]?.trim().toLowerCase() ?? "the people in the room";
+            return call(toolCall("write_slide", { slide_id: next, layout: sl.layout, ...sl.fill(subject, audience) }));
+          }
+          if (lastCall.name === "read_deck") {
+            const missing = [...(lastResult?.content ?? "").matchAll(/\d+\. \[(\S+) v\S+\] \S+ (.*?) \(no notes\)/g)].map((m) => ({ id: m[1]!, title: m[2]! }));
+            if (missing.length === 0) return say("Every slide already has speaker notes.");
+            return call(toolCall("set_notes", { slide_id: missing[0]!.id, notes: `Introduce “${missing[0]!.title}” in one sentence, give the one example that makes it concrete, then move on.` }));
+          }
+          if (lastCall.name === "set_notes") return say("Wrote speaker notes for the first slide that had none.");
+          if (lastCall.name === "add_slide") return say("Added the slide at the end, with speaker notes.");
+          if (lastCall.name === "set_title") return say("Renamed the deck.");
+          return say("Done.");
+        }
+        if (/Deck: blank/.test(ctxText)) {
+          if (!answers) return call(toolCall("ask_questions", { questions: [
+            { id: "audience", prompt: "Who is the audience?", options: ["My team", "Leadership", "Customers"] },
+            { id: "length", prompt: "How long should the deck be?", options: ["About 5 slides", "About 8 slides"] },
+          ] }));
+          const plan = deckPlan(/8|ten|long/i.test(answers));
+          return call(toolCall("lay_out_deck", { title: cap(subject), slides: plan.map((p) => ({ layout: p.layout, title: p.title || cap(subject), intent: p.intent })) }));
+        }
+        const about = /add (?:a |an |another )?(?:new )?slide(?: (?:on|about|for|called|covering))? (.+)/i.exec(req)?.[1]?.replace(/[.!?]+$/, "");
+        if (about) return call(toolCall("add_slide", { layout: "bullets", title: cap(about), body: `- Where ${about.toLowerCase()} stands today\n- What should change\n- Who owns it`, notes: `Say why ${about.toLowerCase()} belongs in this talk, then take the three points in order.` }));
+        const named = /(?:rename (?:it |this )?to|call it|title it) (.+)/i.exec(req)?.[1];
+        if (named) return call(toolCall("set_title", { title: named.replace(/^["“]|["”.]+$/g, "") }));
+        if (/notes/i.test(req)) return call(toolCall("read_deck", { view: "outline" }));
+        return say("The demo AI can draft a new deck with speaker notes, add a slide, write missing notes, and rename the deck. Connect a real model to go further.");
       }
 
       const blank = /Document: blank/.test(part(userText, "Context"));
@@ -149,7 +207,7 @@ export function scriptedModel(opts: { wordMs?: number; toolMs?: number } = {}): 
         return call(toolCall("lay_out_document", { title: cap(subject), sections: planFor(subject, long).map((s) => ({ ...(s.heading ? { heading: s.heading } : {}), intent: s.intent })) }));
       }
       const ask = request.trim();
-      const section = /add (?:a |an |another )?(?:new )?(?:section|part|paragraph)(?: (?:on|about|for|called|covering))? (.+)/i.exec(ask)?.[1] ?? /add (?:a |an )?(.+?) section/i.exec(ask)?.[1];
+      const section = /add .*?\b(?:section|part|paragraph)\b.*?\b(?:called|titled|named) ["“]?(.+?)["”]?(?= with\b| that\b| which\b|[.!?,]|$)/i.exec(ask)?.[1] ?? /add (?:a |an |another )?(?:new )?(?:section|part|paragraph)(?: (?:on|about|for|called|covering))? (.+)/i.exec(ask)?.[1] ?? /add (?:a |an )?(.+?) section/i.exec(ask)?.[1];
       if (section) { const h = cap(section.replace(/[.!?]+$/, "")); return call(toolCall("insert_blocks", { position: "end", markdown: `## ${h}\n\nThis section covers ${section.replace(/[.!?]+$/, "").toLowerCase()}: the current state, what should change, and who owns it.` })); }
       const title = /(?:rename (?:it |this )?to|call it|title it) (.+)/i.exec(ask)?.[1];
       if (title) return call(toolCall("set_title", { title: title.replace(/^["“]|["”.]+$/g, "") }));

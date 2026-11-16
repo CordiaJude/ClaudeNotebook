@@ -1,7 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { DataError, getData, type Kind } from "@/lib/data";
+import { DataError, getData, type Kind, type Person, type ShareRole } from "@/lib/data";
+import type { DesignSystem } from "@/lib/deck/design";
 import "@/lib/rooms";
 import { currentUser, endSession, startSession } from "@/lib/session";
 
@@ -45,4 +46,49 @@ export async function deleteArtifact(id: string): Promise<FormState> {
   try { await getData().deleteArtifact(user.id, id); } catch (e) { return { error: message(e) }; }
   revalidatePath("/library");
   return null;
+}
+
+export type ShareState = { people: Person[]; error?: string; notice?: string };
+async function shared(id: string, userId: string, extra: Partial<ShareState> = {}): Promise<ShareState> {
+  try { return { people: await getData().people(userId, id), ...extra }; } catch (e) { return { people: [], error: message(e) }; }
+}
+/** Who has access. Any role may look; only the owner can change it. */
+export async function listPeople(id: string): Promise<ShareState> {
+  const user = await currentUser();
+  return user ? shared(id, user.id) : { people: [], error: "Sign in first." };
+}
+export async function shareByEmail(id: string, email: string, role: ShareRole): Promise<ShareState> {
+  const user = await currentUser();
+  if (!user) return { people: [], error: "Sign in first." };
+  try {
+    const res = await getData().shareByEmail(user.id, id, email, role);
+    // No mail is sent yet: invitations by email arrive with the real accounts.
+    return shared(id, user.id, { notice: res === "shared" ? "Shared. They will see it in their library." : "Invited. They get access when they create an account with this address." });
+  } catch (e) { return shared(id, user.id, { error: message(e) }); }
+}
+export async function setRole(id: string, email: string, role: ShareRole): Promise<ShareState> {
+  const user = await currentUser();
+  if (!user) return { people: [], error: "Sign in first." };
+  try { await getData().setRole(user.id, id, email, role); return shared(id, user.id); } catch (e) { return shared(id, user.id, { error: message(e) }); }
+}
+export async function removeAccess(id: string, email: string): Promise<ShareState> {
+  const user = await currentUser();
+  if (!user) return { people: [], error: "Sign in first." };
+  try { await getData().removeAccess(user.id, id, email); } catch (e) { return shared(id, user.id, { error: message(e) }); }
+  revalidatePath("/library");
+  return shared(id, user.id);
+}
+
+/** S11. The data layer checks the colours, fonts and contrast; what is wrong comes back as sentences to show. */
+export async function saveDesign(input: unknown): Promise<{ design: DesignSystem } | { errors: string[] }> {
+  const user = await currentUser();
+  if (!user) return { errors: ["Sign in first."] };
+  try { const design = await getData().saveDesign(user.id, input); revalidatePath("/", "layout"); return { design }; }
+  catch (e) { return { errors: e instanceof DataError ? e.message.split("\n") : ["Something went wrong on our side. Try again."] }; }
+}
+export async function resetDesign(): Promise<{ design: DesignSystem } | { errors: string[] }> {
+  const user = await currentUser();
+  if (!user) return { errors: ["Sign in first."] };
+  try { const design = await getData().resetDesign(user.id); revalidatePath("/", "layout"); return { design }; }
+  catch (e) { return { errors: [message(e)] }; }
 }

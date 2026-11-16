@@ -13,6 +13,6 @@ export default defineConfig({
     command: "pnpm start",
     url: "http://localhost:3000/login",
     reuseExistingServer: true,
-    env: { INSECURE_COOKIES: "1", DEMO_AI_TOOL_MS: "250", DEMO_AI_WORD_MS: "4" },
+    env: { INSECURE_COOKIES: "1", DEMO_AI_TOOL_MS: "250", DEMO_AI_WORD_MS: "4", ROOM_RECHECK_MS: "1000", AI_API_KEY: "", ANTHROPIC_API_KEY: "", ...(process.env.PW_CHROMIUM_PATH ? { CHROMIUM_PATH: process.env.PW_CHROMIUM_PATH } : {}) },
   },
 });

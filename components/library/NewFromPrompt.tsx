@@ -14,7 +14,7 @@ export function NewFromPrompt() {
     setError(null);
     const res = await createArtifact({ kind });
     if ("error" in res) { setError(res.error); return; }
-    router.push(`/a/${res.id}${kind === "doc" ? `?prompt=${encodeURIComponent(text)}` : ""}`);
+    router.push(`/a/${res.id}?prompt=${encodeURIComponent(text)}`);
   });
   return (
     <div className="ui-stack">

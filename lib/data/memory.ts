@@ -2,12 +2,17 @@
    so screens built on it behave the same when the database arrives. Seeded with a demo account and a few documents. */
 import { randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { Fragment } from "prosemirror-model";
+import { DEFAULT_DESIGN, validateDesign, type DesignSystem } from "@/lib/deck/design";
+import { deckText } from "@/lib/deck/edit";
+import { buildSlide } from "@/lib/deck/layouts";
+import type { Deck } from "@/lib/deck/types";
+import { initialDeckUpdate } from "@/lib/deck/ydeck";
 import { withIds } from "@/lib/doc/ids";
 import { parseMarkdown } from "@/lib/doc/markdown";
 import { docSchema } from "@/lib/doc/schema";
 import { initialUpdate } from "@/lib/doc/ydoc";
 import { localRooms } from "@/lib/rooms/local";
-import { DataError, canEdit, type Artifact, type Data, type Kind, type Message, type Role, type Run, type Tab, type Template, type User } from "./types";
+import { DataError, canEdit, type Artifact, type Data, type Kind, type Message, type Person, type Role, type Run, type ShareRole, type Tab, type Template, type User } from "./types";
 
 type Account = User & { hash: string };
 type ArtifactRow = { id: string; kind: Kind; title: string; ownerId: string; createdAt: string; updatedAt: string; deletedAt?: string; text: string };
@@ -16,10 +21,14 @@ type Store = {
   permissions: Map<string, Role>; // `${artifactId}:${userId}`
   chats: Map<string, Message[]>; // `${artifactId}:${userId}`
   runs: Map<string, Run>; usage: Map<string, number>; seeded: boolean;
+  invites: Map<string, ShareRole>; // `${artifactId}:${email}`
+  designs: Map<string, DesignSystem>; // by user id
 };
 
 const g = globalThis as typeof globalThis & { __memoryData?: Store };
-const db: Store = (g.__memoryData ??= { users: new Map(), artifacts: new Map(), tabs: new Map(), permissions: new Map(), chats: new Map(), runs: new Map(), usage: new Map(), seeded: false });
+const db: Store = (g.__memoryData ??= { users: new Map(), artifacts: new Map(), tabs: new Map(), permissions: new Map(), chats: new Map(), runs: new Map(), usage: new Map(), seeded: false, invites: new Map(), designs: new Map() });
+db.invites ??= new Map();
+db.designs ??= new Map();
 
 export const DAILY_RUNS = Number(process.env.AI_DAILY_RUNS ?? 60);
 export const DEMO = { email: "demo@draftly.test", password: "draftly-demo", name: "Jude Demo" };
@@ -41,27 +50,43 @@ function docFor(title: string, markdown: string) {
   return withIds(s.nodes.doc!.create(null, Fragment.from([s.nodes.title!.create(null, title ? s.text(title) : null), ...body])));
 }
 
-function addArtifact(ownerId: string, kind: Kind, title: string, markdown: string, at = now()): { row: ArtifactRow; tab: Tab } {
-  const id = randomUUID(), tabId = randomUUID();
-  const row: ArtifactRow = { id, kind, title: title || "Untitled", ownerId, createdAt: at, updatedAt: at, text: markdown.replace(/[#*|>-]/g, " ").replace(/\s+/g, " ").trim() };
+/** Seed data uses fixed ids, so a session and a link stay valid when the server process is replaced. */
+const fixed = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+function addArtifact(ownerId: string, kind: Kind, title: string, markdown: string, at = now(), seedNo?: number, deck?: Deck): { row: ArtifactRow; tab: Tab } {
+  const id = seedNo ? fixed(seedNo) : randomUUID(), tabId = seedNo ? fixed(seedNo + 500) : randomUUID();
+  const text = kind === "deck" ? (deck ? deckText(deck) : "") : markdown;
+  const row: ArtifactRow = { id, kind, title: title || "Untitled", ownerId, createdAt: at, updatedAt: at, text: text.replace(/[#*|>-]/g, " ").replace(/\s+/g, " ").trim() };
   const tab: Tab = { id: tabId, artifactId: id, title: "Main", position: "a0", room: `a:${id}:t:${tabId}` };
   db.artifacts.set(id, row); db.tabs.set(tabId, tab); db.permissions.set(`${id}:${ownerId}`, "owner");
-  void localRooms.create(tab.room, initialUpdate(docFor(title, markdown)));
+  // A deck's room holds slides; a doc's room holds rich text.
+  void localRooms.create(tab.room, kind === "deck" ? initialDeckUpdate(deck ?? { title, slides: [] }) : initialUpdate(docFor(title, markdown)));
   return { row, tab };
+}
+/** The seeded deck. Slide and element ids are fixed, so every server instance holds the same deck. */
+function boardUpdate(): Deck {
+  const slides = [
+    { ...buildSlide({ layout: "title", title: "Board update", subtitle: "First quarter, in five slides" }), notes: "Open with the headline: revenue is up and the launch moved by two weeks. Say both before anyone asks." },
+    { ...buildSlide({ layout: "big-number", number: "14%", label: "Revenue growth on last quarter", body: "Driven by renewals. New business was flat." }), notes: "Pause on the number. Then say plainly that new business did not grow." },
+    { ...buildSlide({ layout: "bullets", title: "What changed", body: "- The launch moves to 4 March\n- The supplier is two weeks late\n- The test window is one week, with no slack" }), notes: "The date is firm if the parts arrive by 20 February. Name the risk yourself." },
+    { ...buildSlide({ layout: "closing", title: "What we need from the board", body: "- Approve the revised launch date\n- Agree the second supplier as a fallback" }), notes: "Ask for both decisions today." },
+  ];
+  slides.forEach((s, i) => { s.id = `seed-s${i + 1}`; s.elements.forEach((e, j) => { e.id = `seed-s${i + 1}e${j + 1}`; }); });
+  return { title: "Board update", slides };
 }
 
 function seed() {
   if (db.seeded) return;
   db.seeded = true;
-  const mk = (email: string, name: string, password: string): Account => { const u = { id: randomUUID(), email, name, hash: hash(password) }; db.users.set(u.id, u); return u; };
-  const me = mk(DEMO.email, DEMO.name, DEMO.password);
-  const priya = mk("priya@draftly.test", "Priya Shah", "draftly-demo");
+  const mk = (n: number, email: string, name: string, password: string): Account => { const u = { id: fixed(n), email, name, hash: hash(password) }; db.users.set(u.id, u); return u; };
+  const me = mk(1, DEMO.email, DEMO.name, DEMO.password);
+  const priya = mk(2, "priya@draftly.test", "Priya Shah", "draftly-demo");
   const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
-  addArtifact(me.id, "doc", "Q1 launch plan", "The launch moves to **4 March** because the supplier is two weeks late. The date is firm if the parts arrive by 20 February.\n\n## Timeline\n\n| Date | Milestone | Owner |\n|---|---|---|\n| 20 February | Parts arrive | Priya |\n| 27 February | Final test | Sam |\n| 4 March | Launch | Jude |\n\n## Risks\n\n- A second supplier delay pushes the launch to April.\n- The test window is one week, with no slack.", ago(2));
-  addArtifact(me.id, "deck", "Board update", "", ago(26));
-  const offsite = addArtifact(priya.id, "doc", "Team offsite notes", "We agreed to hold the offsite in May, in Lisbon, for two days.\n\n## Decisions\n\n- Two days, not three.\n- Budget is capped at 12,000.\n\n## Actions\n\n- [ ] Book the venue\n- [ ] Send the survey", ago(50));
+  addArtifact(me.id, "doc", "Q1 launch plan", "The launch moves to **4 March** because the supplier is two weeks late. The date is firm if the parts arrive by 20 February.\n\n## Timeline\n\n| Date | Milestone | Owner |\n|---|---|---|\n| 20 February | Parts arrive | Priya |\n| 27 February | Final test | Sam |\n| 4 March | Launch | Jude |\n\n## Risks\n\n- A second supplier delay pushes the launch to April.\n- The test window is one week, with no slack.", ago(2), 101);
+  addArtifact(me.id, "deck", "Board update", "", ago(26), 102, boardUpdate());
+  const offsite = addArtifact(priya.id, "doc", "Team offsite notes", "We agreed to hold the offsite in May, in Lisbon, for two days.\n\n## Decisions\n\n- Two days, not three.\n- Budget is capped at 12,000.\n\n## Actions\n\n- [ ] Book the venue\n- [ ] Send the survey", ago(50), 103);
   db.permissions.set(`${offsite.row.id}:${me.id}`, "viewer");
-  const hiring = addArtifact(priya.id, "doc", "Hiring plan", "We hire two engineers and one designer this half.\n\n## Roles\n\n1. Senior engineer, platform\n2. Engineer, editor\n3. Product designer", ago(75));
+  const hiring = addArtifact(priya.id, "doc", "Hiring plan", "We hire two engineers and one designer this half.\n\n## Roles\n\n1. Senior engineer, platform\n2. Engineer, editor\n3. Product designer", ago(75), 104);
   db.permissions.set(`${hiring.row.id}:${me.id}`, "editor");
 }
 
@@ -87,6 +112,13 @@ export const memoryData: Data = {
     if ([...db.users.values()].some((u) => u.email === e)) throw new DataError("conflict", "An account with that email already exists. Sign in instead.");
     const u: Account = { id: randomUUID(), email: e, name: name.trim().slice(0, 80), hash: hash(password) };
     db.users.set(u.id, u);
+    // Invites waiting for this address become access. (The real accounts only do this for a confirmed address.)
+    for (const [key, role] of [...db.invites]) {
+      const [artifactId, addr] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+      if (addr !== e) continue;
+      db.invites.delete(key);
+      if (db.artifacts.get(artifactId) && !db.permissions.has(`${artifactId}:${u.id}`)) db.permissions.set(`${artifactId}:${u.id}`, role);
+    }
     return { id: u.id, email: u.email, name: u.name };
   },
   async signIn({ email, password }) {
@@ -138,6 +170,68 @@ export const memoryData: Data = {
   async roleOn(userId, artifactId) { seed(); return roleOf(userId, artifactId); },
   async templates(kind) { return TEMPLATES.filter((t) => !kind || t.kind === kind); },
 
+  async people(userId, artifactId) {
+    need(userId, artifactId, () => true, "");
+    const out: Person[] = [];
+    for (const [key, role] of db.permissions) {
+      if (!key.startsWith(`${artifactId}:`)) continue;
+      const u = db.users.get(key.slice(artifactId.length + 1));
+      if (u) out.push({ id: u.id, name: u.name, email: u.email, role });
+    }
+    for (const [key, role] of db.invites) if (key.startsWith(`${artifactId}:`)) { const email = key.slice(artifactId.length + 1); out.push({ id: null, name: email, email, role, pending: true }); }
+    const rank = (p: Person) => (p.role === "owner" ? 0 : p.pending ? 2 : 1);
+    return out.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  },
+  async shareByEmail(userId, artifactId, email, role) {
+    need(userId, artifactId, (r) => r === "owner", "Only the owner can share this.");
+    if (role !== "viewer" && role !== "editor") throw new DataError("invalid", "Choose view or edit access.");
+    const e = normal(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new DataError("invalid", "Enter a full email address.");
+    const target = [...db.users.values()].find((u) => u.email === e);
+    if (target?.id === userId) throw new DataError("invalid", "You already own this.");
+    if (target) { db.permissions.set(`${artifactId}:${target.id}`, role); return "shared"; }
+    db.invites.set(`${artifactId}:${e}`, role);
+    return "invited";
+  },
+  async setRole(userId, artifactId, email, role) {
+    need(userId, artifactId, (r) => r === "owner", "Only the owner can change access.");
+    if (role !== "viewer" && role !== "editor") throw new DataError("invalid", "Choose view or edit access.");
+    const e = normal(email);
+    const target = [...db.users.values()].find((u) => u.email === e);
+    if (target && db.permissions.get(`${artifactId}:${target.id}`) === "owner") throw new DataError("invalid", "The owner's access cannot be changed.");
+    if (target && db.permissions.has(`${artifactId}:${target.id}`)) db.permissions.set(`${artifactId}:${target.id}`, role);
+    else if (db.invites.has(`${artifactId}:${e}`)) db.invites.set(`${artifactId}:${e}`, role);
+    else throw new DataError("not_found", "That person does not have access.");
+  },
+  async removeAccess(userId, artifactId, email) {
+    const mine = roleOf(userId, artifactId);
+    if (!mine) throw new DataError("not_found", "That doc was not found, or it is not shared with you.");
+    const e = normal(email);
+    const target = [...db.users.values()].find((u) => u.email === e);
+    const self = target?.id === userId;
+    if (mine !== "owner" && !self) throw new DataError("forbidden", "Only the owner can remove people.");
+    if (target && db.permissions.get(`${artifactId}:${target.id}`) === "owner") throw new DataError("invalid", "The owner cannot be removed.");
+    if (target) db.permissions.delete(`${artifactId}:${target.id}`);
+    db.invites.delete(`${artifactId}:${e}`);
+  },
+
+  async getDesign(userId, artifactId) {
+    seed();
+    if (!artifactId) return db.designs.get(userId) ?? DEFAULT_DESIGN;
+    const a = need(userId, artifactId, () => true, "");
+    return db.designs.get(a.ownerId) ?? DEFAULT_DESIGN;
+  },
+  async saveDesign(userId, design) {
+    seed();
+    if (!db.users.has(userId)) throw new DataError("unauthenticated", "Sign in first.");
+    const v = validateDesign(design);
+    if (!v.ok) throw new DataError("invalid", v.errors.join("\n"));
+    const saved = { ...v.design, updatedAt: now() };
+    db.designs.set(userId, saved);
+    return saved;
+  },
+  async resetDesign(userId) { seed(); db.designs.delete(userId); return DEFAULT_DESIGN; },
+
   async tabByRoom(room) { seed(); return [...db.tabs.values()].find((t) => t.room === room) ?? null; },
   async saveMirror(tabId, { text, title }) {
     const tab = db.tabs.get(tabId);
@@ -181,7 +275,8 @@ export const memoryData: Data = {
 
 /** Test helper: forget everything and seed again. */
 export function resetMemory() {
-  db.users.clear(); db.artifacts.clear(); db.tabs.clear(); db.permissions.clear(); db.chats.clear(); db.runs.clear(); db.usage.clear(); db.seeded = false;
+  for (const t of db.tabs.values()) localRooms.drop(t.room);
+  db.users.clear(); db.artifacts.clear(); db.tabs.clear(); db.permissions.clear(); db.chats.clear(); db.runs.clear(); db.usage.clear(); db.invites.clear(); db.designs.clear(); db.seeded = false;
   seed();
 }
 /** Test and demo helper: give someone a role on an artifact. Sharing itself is built in the Docs MVP milestone. */

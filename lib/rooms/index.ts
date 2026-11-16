@@ -1,4 +1,6 @@
 import "server-only";
+import { deckText } from "@/lib/deck/edit";
+import { holdsDeck, readDeck } from "@/lib/deck/ydeck";
 import { plainText, titleOf } from "@/lib/doc/read";
 import { docSchema } from "@/lib/doc/schema";
 import { loadYDoc, readDoc } from "@/lib/doc/ydoc";
@@ -30,7 +32,9 @@ export async function mirror(room: string): Promise<void> {
   const state = await localRooms.read(room);
   if (!tab || !state) return;
   try {
-    const doc = readDoc(loadYDoc(state), docSchema());
+    const ydoc = loadYDoc(state);
+    if (holdsDeck(ydoc)) { const deck = readDeck(ydoc); await getData().saveMirror(tab.id, { text: deckText(deck), title: deck.title }); return; }
+    const doc = readDoc(ydoc, docSchema());
     await getData().saveMirror(tab.id, { text: plainText(doc), title: titleOf(doc) });
   } catch { /* a half-synced document: the next change mirrors it */ }
 }

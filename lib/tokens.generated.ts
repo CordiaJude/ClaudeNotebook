@@ -41,7 +41,14 @@ export const TOKENS = {
       "person-4": "#7a4fa3",
       "person-5": "#a33f66",
       "person-6": "#666b24",
-      "on-person": "#ffffff"
+      "on-person": "#ffffff",
+      "stage": "#0f0e0d",
+      "stage-bar": "#1a1917",
+      "stage-border": "#2c2a27",
+      "stage-active": "#3a3733",
+      "stage-text": "#f1eee8",
+      "stage-muted": "#cfcac0",
+      "stage-subtle": "#a8a297"
     },
     "dark": {
       "bg": "#171614",
@@ -83,7 +90,14 @@ export const TOKENS = {
       "person-4": "#c3a3e6",
       "person-5": "#e68fb0",
       "person-6": "#c2c76a",
-      "on-person": "#171614"
+      "on-person": "#171614",
+      "stage": "#0f0e0d",
+      "stage-bar": "#1a1917",
+      "stage-border": "#2c2a27",
+      "stage-active": "#3a3733",
+      "stage-text": "#f1eee8",
+      "stage-muted": "#cfcac0",
+      "stage-subtle": "#a8a297"
     }
   },
   "roles": {

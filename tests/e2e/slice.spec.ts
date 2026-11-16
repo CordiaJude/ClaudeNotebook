@@ -233,7 +233,5 @@ test.describe("layout and accessibility", () => {
   test("placeholder screens say plainly that they are not built", async ({ page }) => {
     await signIn(page, "/settings");
     await expect(page.getByText("Not built yet")).toBeVisible();
-    await page.goto("/settings/design-system");
-    await expect(page.getByRole("heading", { name: "Design system" })).toBeVisible();
   });
 });

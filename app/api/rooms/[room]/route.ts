@@ -9,6 +9,7 @@ import { currentUser } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64");
 
 async function access(room: string) {
@@ -35,7 +36,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ room
         off = localRooms.subscribe(room, (update, origin) => { if (origin !== client) send("update", b64(update)); });
         const state = await localRooms.read(room);
         send("sync", state ? b64(state) : "");
-        ping = setInterval(() => send("ping", "1"), 20_000);
+        // Every few seconds: keep the connection alive, and end it if this person's access was removed meanwhile.
+        ping = setInterval(async () => {
+          const still = await access(room).catch(() => null);
+          if (!still || "error" in still) { send("revoked", "1"); off(); clearInterval(ping); try { controller.close(); } catch { /* closed */ } return; }
+          send("ping", "1");
+        }, Number(process.env.ROOM_RECHECK_MS ?? 10_000));
         req.signal.addEventListener("abort", () => { off(); clearInterval(ping); try { controller.close(); } catch { /* closed */ } }, { once: true });
       },
       cancel() { off(); clearInterval(ping); },
