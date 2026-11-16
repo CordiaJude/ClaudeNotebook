@@ -25,8 +25,9 @@ export function buildSlide(c: SlideContent, keep?: { id?: string; notes?: string
   const heading = () => { els.push(t({ x: M, y: 56, w: W, h: 108, text: title, role: "heading", size: fit(title, W, 108, 44, 30, 1.15), valign: "bottom" }), bar(M, 180, 64, 6)); };
   switch (c.layout) {
     case "title":
-      els.push(bar(M, 232, 96, 8), t({ x: M, y: 264, w: W, h: 224, text: title, role: "title", size: fit(title, W, 224, 72, 44, 1.1) }));
-      if (subtitle) els.push(t({ x: M, y: 504, w: 1000, h: 84, text: subtitle, role: "body", size: 28, color: "muted" }));
+      // The title sits on the bar and grows upwards, so a subtitle is always right under it however long the title is.
+      els.push(t({ x: M, y: 152, w: W, h: 272, text: title, role: "title", size: fit(title, W, 272, 72, 44, 1.1), valign: "bottom" }), bar(M, 448, 96, 8));
+      if (subtitle) els.push(t({ x: M, y: 484, w: 1000, h: 84, text: subtitle, role: "body", size: 28, color: "muted" }));
       break;
     case "section":
       bg = "accent";

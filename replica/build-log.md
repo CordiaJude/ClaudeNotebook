@@ -2,7 +2,7 @@
 
 Step 3 of the Replica pack (`/replica-build`). One line per screen, then what changed from the plan and what was harder than expected.
 
-Status on 2026-11-15: **the foundation, the first slice (F01 + F02), sharing and export are built. The build step is not finished.** 6 of 14 screens are done, 2 are partly done, 6 are routes with a plain "not built yet" page or a disabled button.
+Status on 2026-11-16: **docs (F01 + F02), sharing, export and now slides are built. The build step is not finished.** 9 of 14 screens are done, 2 are partly done, 3 are not built (comments, change attribution, account and billing).
 
 Everything runs with no outside service: accounts and documents are held in the server's memory (`lib/data/memory.ts`), live documents sync through a small local transport (`lib/rooms`), and the AI is a scripted stand-in (`lib/ai/scripted.ts`) that follows the real tool contract with canned text. The UI labels it "Demo AI". `/replica-backend` replaces all three behind the same interfaces.
 
@@ -16,11 +16,11 @@ Everything runs with no outside service: accounts and documents are held in the 
 | S04 | Workspace: chat + editor | 2026-11-15 | done | States: idle, questions, drafting, stopped, error, phone (stacked), access removed while open |
 | S05 | Doc editor | 2026-11-15 | done | States: empty, drafting, filled, read-only, reconnecting, failed. No tabs, comments, images or charts yet |
 | S06 | Comments | - | not built | Comment button in the selection menu is disabled |
-| S07 | Slide editor | - | not built | Decks can be created and listed; opening one says the editor is not built |
-| S08 | Present | - | route only | `/a/:id/present` says it is not built |
+| S07 | Slide editor | 2026-11-16 | done | States: empty, drafting, filled, read-only, reconnecting, failed, phone. Elements are text and shapes: no images, charts or comments yet. No Edit with AI on a selection in slides (chat only) |
+| S08 | Present | 2026-11-16 | done | States: presenting, notes shown, full screen, no slides. One screen only: no separate presenter window |
 | S09 | Share dialog | 2026-11-15 | done | States: private, shared, invited (no account yet), error, loading, read-only for non-owners (with Leave). No link sharing yet (a "should"). No email is sent |
-| S10 | Export menu | 2026-11-15 | done for docs | Word, PDF, Markdown. States: idle, working, done, error. Deck formats wait for slides |
-| S11 | Design system setup | - | route only | `/settings/design-system` |
+| S10 | Export menu | 2026-11-16 | done | Docs: Word, PDF, Markdown. Decks: PowerPoint, PowerPoint with basic fonts, PDF, web page. States: idle, working, done, error. No slide PNG, no Google export |
+| S11 | Design system setup | 2026-11-16 | done | States: default, yours, invalid colour, low contrast refused, saved. One design system per person: no upload of a brand deck, no workspace default |
 | S12 | Shared view page | 2026-11-15 | partial | A doc shared with you opens with your role (read-only for a viewer). The link route `/s/:token` is a placeholder |
 | S13 | Change attribution | - | not built | Each AI run is already recorded with who asked |
 | S14 | Account and billing | - | route only | `/settings` |
@@ -73,6 +73,30 @@ Screenshots of every built state: `replica/clone-screens/`.
 - Demo accounts and seed documents have fixed ids, so a session and a link survive a server restart. The library says plainly that storage is demo storage.
 - The session cookie is signed with `SESSION_SECRET`, or failing that a value derived from the model key, never the built-in default on a host that has a key.
 
+## Slides milestone, 2026-11-16
+
+What was built: F04 (deck from a prompt), S07, S08 (F05), S11 (F08) and deck export (F07).
+
+- **A slide is a 1280 x 720 board of elements that name roles, not looks.** An element says "accent" or "heading"; the owner's design system says what that means. One change to the design system restyles every deck that person owns, for everyone who opens it. The same rules draw the editor, the thumbnails, present mode, the PDF and the PowerPoint file (`lib/deck/render.ts`).
+- **The AI chooses a layout and the words, never positions or colours** (`lib/ai/deck-tools.ts`). Seven layouts place the text and shrink long titles so they stay on the slide. Flow: questions, `lay_out_deck`, then `write_slide` once per slide, each with speaker notes. Edit tools refuse to overwrite a slide a person changed since the AI read it. One undo puts back a whole run; if a person edited since, it names the slide and asks first.
+- **Permissions are the same code path as docs.** The run loop serves both kinds; a viewer is refused before the model is called, and every single slide write re-checks the role (tested: access removed mid-run stops the writing).
+- **Live editing**: slides and elements are separate shared objects in the deck's live document, so a person and the AI changing different slides at once both keep their change (tested).
+- **By hand**: move and resize with the pointer or the keyboard, retype in place, layouts, backgrounds, text size, alignment, colour (design-system colours only), add / duplicate / delete / reorder slides, undo and redo of your own changes.
+- **Export**: `.pptx` with real text boxes, bullets, fonts and speaker notes; a basic-fonts variant (Georgia and Arial) for computers without the design system's fonts; PDF with the fonts embedded; one self-contained web page.
+
+Changes from the plan:
+1. `slides` rows are not written yet: the deck lives in its live document and the library's search copy. The table arrives with the database.
+2. One design system per person, not per workspace, and decks do not pick one: they follow their owner's. Workspaces arrive with the database.
+3. Slide text is plain text with three conventions ("- " bullets, bold, italic), not the doc editor's rich text. It keeps slides simple and exports exact.
+4. Dependencies added: `pptxgenjs`, `jszip`, six open-licence font packages.
+
+Harder than expected:
+- The PowerPoint library writes invalid paragraph settings when a bullet line mixes bold or italic, which made bullets vanish. Found by rendering the file and looking at it; the file is now repaired after it is generated (`repairSlideXml`, tested).
+- Selecting an element used to grow the toolbar and push the slide down under the pointer, so a drag landed in the wrong place. The selection toolbar now has a fixed height.
+- Each change by hand had to be made its own undo step; otherwise one undo took back several quick actions at once.
+
+Not checked: the `.pptx` was opened in LibreOffice, not in PowerPoint or Keynote. Present mode was driven in headless Chromium only.
+
 ## Blocked on the owner
 
 1. **Access to the Vercel team**, so the live check can be called on the protected preview where the model key lives. Until then the real model has still never run: the provider is tested against a mocked SDK only.
@@ -81,6 +105,7 @@ Screenshots of every built state: `replica/clone-screens/`.
 
 ## Not done in this step, said plainly
 
-- 6 of the 20 must-haves are not started: export deck, and all five slide features.
-- 8 must-haves are partial: they work, on demo data or with the scripted model.
-- 6 must-haves are done: library, chat beside the editor, rich text, private by default, owner-only rename and delete, AI acts with the asker's permissions.
+- 0 of the 20 must-haves are not started.
+- 10 must-haves are partial for one of two reasons: they run on demo data (accounts, autosave, sharing, exports of your own content all work, but nothing is kept), or they have only run with the scripted AI (drafting a doc, Edit with AI, drafting a deck, speaker notes).
+- 10 must-haves are done.
+- Of the shoulds: comments and @AI, tabs, share by link, change attribution, charts, images, doc into deck, design system from a brand deck, and slide PNG are not built.

@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { DataError, getData, type Kind, type Person, type ShareRole } from "@/lib/data";
+import type { DesignSystem } from "@/lib/deck/design";
 import "@/lib/rooms";
 import { currentUser, endSession, startSession } from "@/lib/session";
 
@@ -76,4 +77,18 @@ export async function removeAccess(id: string, email: string): Promise<ShareStat
   try { await getData().removeAccess(user.id, id, email); } catch (e) { return shared(id, user.id, { error: message(e) }); }
   revalidatePath("/library");
   return shared(id, user.id);
+}
+
+/** S11. The data layer checks the colours, fonts and contrast; what is wrong comes back as sentences to show. */
+export async function saveDesign(input: unknown): Promise<{ design: DesignSystem } | { errors: string[] }> {
+  const user = await currentUser();
+  if (!user) return { errors: ["Sign in first."] };
+  try { const design = await getData().saveDesign(user.id, input); revalidatePath("/", "layout"); return { design }; }
+  catch (e) { return { errors: e instanceof DataError ? e.message.split("\n") : ["Something went wrong on our side. Try again."] }; }
+}
+export async function resetDesign(): Promise<{ design: DesignSystem } | { errors: string[] }> {
+  const user = await currentUser();
+  if (!user) return { errors: ["Sign in first."] };
+  try { const design = await getData().resetDesign(user.id); revalidatePath("/", "layout"); return { design }; }
+  catch (e) { return { errors: [message(e)] }; }
 }

@@ -1,11 +1,16 @@
 import type { Node } from "prosemirror-model";
 import { toMarkdown } from "@/lib/doc/markdown";
 import { titleOf } from "@/lib/doc/read";
+import type { DesignSystem } from "@/lib/deck/design";
+import type { Deck } from "@/lib/deck/types";
+import { deckPage, toPptx } from "./deck";
 import { toDocx } from "./docx";
 import { toHtml } from "./html";
 
 export const DOC_FORMATS = ["docx", "pdf", "md"] as const;
 export type DocFormat = (typeof DOC_FORMATS)[number];
+export const DECK_FORMATS = ["pptx", "pptx-basic", "pdf", "html"] as const;
+export type DeckFormat = (typeof DECK_FORMATS)[number];
 export type Exported = { bytes: Uint8Array; mime: string; filename: string };
 
 /** A safe file name from a title: letters, digits, spaces and dashes; never empty. */
@@ -39,4 +44,11 @@ export async function exportDoc(doc: Node, format: DocFormat, fallbackTitle: str
   }
   if (format === "docx") return { bytes: await toDocx(doc, title), mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename: `${stem}.docx` };
   return { bytes: await toPdf(toHtml(doc, title)), mime: "application/pdf", filename: `${stem}.pdf` };
+}
+
+export async function exportDeck(deck: Deck, design: DesignSystem, format: DeckFormat, fallbackTitle: string): Promise<Exported> {
+  const stem = fileStem(deck.title || fallbackTitle || "Untitled deck");
+  if (format === "pptx" || format === "pptx-basic") return { bytes: await toPptx(deck, design, { basicFonts: format === "pptx-basic" }), mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation", filename: `${stem}.pptx` };
+  if (format === "html") return { bytes: new TextEncoder().encode(await deckPage(deck, design, true)), mime: "text/html; charset=utf-8", filename: `${stem}.html` };
+  return { bytes: await toPdf(await deckPage(deck, design)), mime: "application/pdf", filename: `${stem}.pdf` };
 }

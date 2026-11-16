@@ -72,7 +72,7 @@ export function rewrite(text: string, instruction: string): string {
 /** The demo's canned deck: a short one and a longer one. Layout, words and speaker notes for each slide. */
 type DemoSlide = { layout: string; title: string; intent: string; fill: (subject: string, audience: string) => Record<string, string> };
 const DECK: DemoSlide[] = [
-  { layout: "title", title: "", intent: "The title and who it is for", fill: (s, a) => ({ title: cap(s), subtitle: `For ${a}`, notes: `Open by saying why the ${s} matters now. One sentence, then move on.` }) },
+  { layout: "title", title: "", intent: "The title and who it is for", fill: (s, a) => ({ title: cap(s), subtitle: `For ${a}`, notes: "Open by saying why this matters now. One sentence, then move on." }) },
   { layout: "bullets", title: "Where we are today", intent: "The current state in three points", fill: () => ({ title: "Where we are today", body: "- The current approach works, but slowly\n- Volume grew faster than the team\n- Two steps are still done by hand", notes: "Keep this short. The audience knows most of it; name the two manual steps, because the rest of the talk is about them." }) },
   { layout: "big-number", title: "The number that matters", intent: "The one figure behind the case", fill: () => ({ number: "6 days", label: "Average time to finish, today", body: "The target is four.", notes: "Pause on the number. Then say where it comes from and that four days is the goal for next quarter." }) },
   { layout: "section", title: "The plan", intent: "A break before the plan", fill: () => ({ title: "The plan", subtitle: "Three steps, in order", notes: "Signal the change of pace: from the problem to what we will do about it." }) },

@@ -299,7 +299,7 @@ export function ShareDialog(props: { people: Person[]; link?: "off" | "viewer" |
 /* ---------- Export menu ---------- */
 const FORMATS: Record<Kind, { key: string; label: string }[]> = {
   doc: [{ key: "docx", label: "Word (.docx)" }, { key: "pdf", label: "PDF" }, { key: "md", label: "Markdown" }],
-  deck: [{ key: "pptx", label: "PowerPoint (.pptx)" }, { key: "pdf", label: "PDF" }, { key: "html", label: "Web page (.html)" }, { key: "png", label: "This slide as PNG" }],
+  deck: [{ key: "pptx", label: "PowerPoint (.pptx)" }, { key: "pptx-basic", label: "PowerPoint, basic fonts" }, { key: "pdf", label: "PDF" }, { key: "html", label: "Web page (.html)" }],
 };
 export type ExportState = { format: string; status: "working" | "done" | "error" };
 export function ExportList({ kind, state, onExport, bare }: { kind: Kind; state?: ExportState; onExport?: (format: string) => void; bare?: boolean }) {

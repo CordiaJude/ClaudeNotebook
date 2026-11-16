@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { renameArtifact } from "@/app/actions";
 import { Mark } from "@/components/brand/Mark";
-import { AiPresencePill, EmptyState } from "@/components/doc/parts";
+import { DeckEditor } from "@/components/deck/DeckEditor";
+import { AiPresencePill } from "@/components/doc/parts";
 import { Button } from "@/components/ui/button";
-import { IconDeck, IconDownload } from "@/components/ui/icons";
+import { IconPlay } from "@/components/ui/icons";
 import { Badge, Segmented } from "@/components/ui/misc";
-import { Tooltip } from "@/components/ui/overlays";
 import type { Artifact, Message, Tab, User } from "@/lib/data/types";
+import type { DesignSystem } from "@/lib/deck/design";
 import type { RoomStatus } from "@/lib/rooms/client";
 import { Chat } from "./Chat";
 import { ChatProvider, useChat } from "./chat-store";
@@ -52,7 +53,7 @@ function Title({ artifact }: { artifact: Artifact }) {
   );
 }
 
-export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: "no-key" | "public-demo" | null; firstPrompt?: string; me: User }) {
+export function Workspace({ artifact, tab, messages, demo, firstPrompt, me, design }: { artifact: Artifact; tab: Tab | null; messages: Message[]; demo: "no-key" | "public-demo" | null; firstPrompt?: string; me: User; design: DesignSystem }) {
   const router = useRouter();
   const canEdit = artifact.role === "owner" || artifact.role === "editor";
   const [width, setWidth] = useState(380);
@@ -83,7 +84,11 @@ export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { 
           <span style={{ flex: 1 }} />
           <div className="ui-ws-switch"><Segmented label="Show" value={pane} onValueChange={setPane} options={[{ value: "chat", label: "Chat" }, { value: "doc", label: artifact.kind === "doc" ? "Doc" : "Slides" }]} /></div>
           <ShareButton artifact={artifact} myEmail={me.email} />
-          {artifact.kind === "doc" ? <ExportButton artifactId={artifact.id} /> : <Tooltip label="Export for slides is not built yet"><Button variant="secondary" size="sm" aria-disabled="true" onClick={(e) => e.preventDefault()}><IconDownload /> <span className="ui-ws-wide">Export</span></Button></Tooltip>}
+          {artifact.kind === "deck" ? (
+            // Full screen has to be asked for inside the click itself; the page change keeps it.
+            <Button variant="secondary" size="sm" aria-label="Present" onClick={() => { void document.documentElement.requestFullscreen?.().catch(() => {}); router.push(`/a/${artifact.id}/present`); }}><IconPlay /> <span className="ui-ws-wide">Present</span></Button>
+          ) : null}
+          <ExportButton artifactId={artifact.id} kind={artifact.kind} />
         </header>
         <div className="ui-ws-main">
           <div className="ui-ws-chat"><Chat canEdit={canEdit} demo={demo} kind={artifact.kind} firstPrompt={firstPrompt} /></div>
@@ -92,12 +97,10 @@ export function Workspace({ artifact, tab, messages, demo, firstPrompt, me }: { 
             onPointerDown={(e) => { drag.current = { x: e.clientX, w: width }; e.currentTarget.setPointerCapture(e.pointerId); }}
             onPointerMove={(e) => { if (drag.current) resize(drag.current.w + e.clientX - drag.current.x); }}
             onPointerUp={() => { drag.current = null; }} />
-          <main className="ui-ws-doc">
-            <div className="ui-paper ui-ws-paper">
-              {tab && artifact.kind === "doc"
-                ? <DocEditor room={tab.room} artifactId={artifact.id} role={artifact.role} onStatus={onStatus} onSaving={onSaving} />
-                : <EmptyState icon={<IconDeck />} title="The slide editor is not built yet" body="Decks can be created and listed. Editing, presenting and AI drafting for slides arrive in the Slides milestone." action={<Button asChild variant="secondary"><Link href="/library">Back to the library</Link></Button>} />}
-            </div>
+          <main className={artifact.kind === "deck" ? "ui-ws-doc ui-ws-doc--deck" : "ui-ws-doc"}>
+            {tab && artifact.kind === "deck"
+              ? <DeckEditor room={tab.room} role={artifact.role} design={design} onStatus={onStatus} onSaving={onSaving} />
+              : tab ? <div className="ui-paper ui-ws-paper"><DocEditor room={tab.room} artifactId={artifact.id} role={artifact.role} onStatus={onStatus} onSaving={onSaving} /></div> : null}
           </main>
         </div>
       </div>

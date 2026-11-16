@@ -61,6 +61,7 @@
     "@tiptap/suggestion": "^3.33.1",
     "docx": "^9.15.4",
     "fractional-indexing": "^4.0.0",
+    "jszip": "^3.10.2",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.73.0",
     "next": "^16.4.6",

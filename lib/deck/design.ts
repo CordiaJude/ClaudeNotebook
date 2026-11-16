@@ -3,14 +3,14 @@
 import type { ColorRole } from "./types";
 
 export const FONTS = {
-  newsreader: { label: "Newsreader", kind: "serif", css: '"Newsreader Variable", Newsreader, Georgia, serif', office: "Newsreader", basic: "Georgia" },
-  lora: { label: "Lora", kind: "serif", css: '"Lora Variable", Lora, Georgia, serif', office: "Lora", basic: "Georgia" },
-  fraunces: { label: "Fraunces", kind: "serif", css: '"Fraunces Variable", Fraunces, Georgia, serif', office: "Fraunces", basic: "Georgia" },
-  "source-serif": { label: "Source Serif 4", kind: "serif", css: '"Source Serif 4 Variable", "Source Serif 4", Georgia, serif', office: "Source Serif 4", basic: "Georgia" },
-  inter: { label: "Inter", kind: "sans", css: '"Inter Variable", Inter, Arial, sans-serif', office: "Inter", basic: "Arial" },
-  "dm-sans": { label: "DM Sans", kind: "sans", css: '"DM Sans Variable", "DM Sans", Arial, sans-serif', office: "DM Sans", basic: "Arial" },
-  "work-sans": { label: "Work Sans", kind: "sans", css: '"Work Sans Variable", "Work Sans", Arial, sans-serif', office: "Work Sans", basic: "Arial" },
-  manrope: { label: "Manrope", kind: "sans", css: '"Manrope Variable", Manrope, Arial, sans-serif', office: "Manrope", basic: "Arial" },
+  newsreader: { dir: "newsreader", label: "Newsreader", kind: "serif", css: '"Newsreader Variable", Newsreader, Georgia, serif', office: "Newsreader", basic: "Georgia" },
+  lora: { dir: "lora", label: "Lora", kind: "serif", css: '"Lora Variable", Lora, Georgia, serif', office: "Lora", basic: "Georgia" },
+  fraunces: { dir: "fraunces", label: "Fraunces", kind: "serif", css: '"Fraunces Variable", Fraunces, Georgia, serif', office: "Fraunces", basic: "Georgia" },
+  "source-serif": { dir: "source-serif-4", label: "Source Serif 4", kind: "serif", css: '"Source Serif 4 Variable", "Source Serif 4", Georgia, serif', office: "Source Serif 4", basic: "Georgia" },
+  inter: { dir: "inter", label: "Inter", kind: "sans", css: '"Inter Variable", Inter, Arial, sans-serif', office: "Inter", basic: "Arial" },
+  "dm-sans": { dir: "dm-sans", label: "DM Sans", kind: "sans", css: '"DM Sans Variable", "DM Sans", Arial, sans-serif', office: "DM Sans", basic: "Arial" },
+  "work-sans": { dir: "work-sans", label: "Work Sans", kind: "sans", css: '"Work Sans Variable", "Work Sans", Arial, sans-serif', office: "Work Sans", basic: "Arial" },
+  manrope: { dir: "manrope", label: "Manrope", kind: "sans", css: '"Manrope Variable", Manrope, Arial, sans-serif', office: "Manrope", basic: "Arial" },
 } as const;
 export type FontId = keyof typeof FONTS;
 export const FONT_IDS = Object.keys(FONTS) as FontId[];
