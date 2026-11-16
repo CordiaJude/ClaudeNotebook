@@ -5,7 +5,7 @@ import { scriptedModel } from "@/lib/ai/scripted";
 
 describe("the live checks themselves", () => {
   const model = scriptedModel({ wordMs: 0, toolMs: 0 });
-  it.each(["draft", "selection", "edit"] as const)("scenario %s passes against the scripted model", async (s) => {
+  it.each(["draft", "selection", "edit", "deck"] as const)("scenario %s passes against the scripted model", async (s) => {
     const r = await runScenario(model, s);
     expect(r.error).toBeUndefined();
     expect(r.checks.filter((c) => !c.ok)).toEqual([]);

@@ -4,6 +4,9 @@ import { runSelectionEdit, startChatRun, undoRun, type Deps } from "./run";
 import type { Model, RunEvent } from "./types";
 import { DEMO, memoryData, resetMemory } from "@/lib/data/memory";
 import type { Message } from "@/lib/data/types";
+import { deckOutline } from "@/lib/deck/edit";
+import { slideTitle } from "@/lib/deck/types";
+import { loadDeck } from "@/lib/deck/ydeck";
 import { toMarkdown } from "@/lib/doc/markdown";
 import { isBlank, titleOf } from "@/lib/doc/read";
 import { rangeText, scopeOf } from "@/lib/doc/scope";
@@ -14,7 +17,7 @@ import type { Node } from "prosemirror-model";
 
 /** SHA-256 of the token the preview eval route accepts. The token itself is not in the repository. */
 export const EVAL_TOKEN_SHA256 = "ceabd779dcb5ff0f0506c61ffd6fad48d325ce8595b258d0f8938f0e341f4bab";
-export const SCENARIOS = ["draft", "selection", "edit"] as const;
+export const SCENARIOS = ["draft", "selection", "edit", "deck"] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 export type Check = { name: string; ok: boolean; note: string };
 export type EvalReport = { model: string; scenario: Scenario; seconds: number; inputTokens: number; outputTokens: number; checks: Check[]; document?: string; error?: string };
@@ -67,6 +70,28 @@ export async function runScenario(model: Model, scenario: Scenario): Promise<Eva
       const reply = last?.message.content.kind === "text" ? last.message.content.text : "";
       check("ends with a short reply and does not paste the document into the chat", reply.length > 0 && reply.length < 400, reply.slice(0, 160));
       document = asMarkdown(doc);
+    } else if (scenario === "deck") {
+      const a = (await memoryData.createArtifact(me.id, { kind: "deck" })).artifact;
+      const deckOf = async () => loadDeck(await localRooms.read((await memoryData.getArtifact(me.id, a.id))!.tabs[0]!.room)).deck;
+      let ev = await drain(await startChatRun({ artifactId: a.id, message: "Make a five-slide deck for leadership on moving our weekly team meeting to written async updates." }, deps));
+      await count(runIdOf(ev));
+      let last = ev.filter((e) => e.type === "message").at(-1) as { message: Message } | undefined;
+      if (last?.message.content.kind === "questions") {
+        const asked = last.message, qs = last.message.content.questions;
+        check("(it chose to ask first, which is allowed)", true, qs.map((q) => q.prompt).join("  /  "));
+        ev = await drain(await startChatRun({ artifactId: a.id, answers: { messageId: asked.id, values: Object.fromEntries(qs.map((q) => [q.id, q.options?.[0] ?? "Keep it short"])) } }, deps));
+        await count(runIdOf(ev));
+        last = ev.filter((e) => e.type === "message").at(-1) as { message: Message };
+      }
+      const deck = await deckOf();
+      const progress = ev.filter((e) => e.type === "progress").map((e) => (e as { label: string }).label);
+      check("lays the deck out, then writes slide by slide", progress.some((p) => p.startsWith("Outlined")) && progress.filter((p) => p.startsWith("Drafted slide")).length >= 3, progress.filter((p) => p.startsWith("Outlined") || p.startsWith("Drafted slide")).join(" > ").slice(0, 400) || errorsIn(ev));
+      check("keeps to about the number of slides asked for, with none left unwritten", deck.slides.length >= 4 && deck.slides.length <= 7 && deck.slides.every((s) => !s.pending), `${deck.slides.length} slides`);
+      check("every slide has speaker notes that are not a copy of the slide", deck.slides.length > 0 && deck.slides.every((s) => s.notes.trim().length > 30 && !s.notes.includes(slideTitle(s) + "\n")), deck.slides.map((s) => s.notes.length).join(", ") + " characters");
+      check("opens with a title slide and uses more than one layout", deck.slides[0]?.layout === "title" && new Set(deck.slides.map((s) => s.layout)).size >= 3, deck.slides.map((s) => s.layout).join(", "));
+      const reply = last?.message.content.kind === "text" ? last.message.content.text : "";
+      check("ends with a short reply and does not paste the deck into the chat", reply.length > 0 && reply.length < 400, reply.slice(0, 160));
+      document = `${deck.title}\n${deckOutline(deck)}\n\n${deck.slides.map((s, i) => `--- ${i + 1}. ${slideTitle(s)}\nnotes: ${s.notes}`).join("\n")}`;
     } else if (scenario === "selection") {
       const a = (await memoryData.listArtifacts(me.id)).find((x) => x.title === "Q1 launch plan")!;
       const doc = await docOf(a.id);

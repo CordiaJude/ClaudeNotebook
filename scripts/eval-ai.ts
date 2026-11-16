@@ -1,6 +1,6 @@
 /* Runs the real flows against the real model, on in-memory documents, and prints what happened.
-   Usage:  AI_API_KEY=... pnpm eval:ai [draft|selection|edit]      (optional: AI_MODEL=claude-sonnet-5-5)
-   It spends real tokens: roughly ten model turns for all three scenarios. */
+   Usage:  AI_API_KEY=... pnpm eval:ai [draft|selection|edit|deck]      (optional: AI_MODEL=claude-sonnet-5-5)
+   It spends real tokens: roughly twenty model turns for all four scenarios. */
 import { anthropicModel } from "@/lib/ai/anthropic";
 import { SCENARIOS, runScenario, type Scenario } from "@/lib/ai/evals";
 

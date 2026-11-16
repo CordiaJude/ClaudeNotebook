@@ -69,7 +69,7 @@ Screenshots of every built state: `replica/clone-screens/`.
 
 - The model key is read from `AI_API_KEY` or `ANTHROPIC_API_KEY`.
 - **Guard for the public site.** While sign-in is the demo kind (one published demo account), the production site keeps the scripted AI even when a key is set, so a stranger cannot spend it. Previews and local runs use the real model. `ALLOW_PUBLIC_DEMO_AI=1` overrides this. Covered by `tests/unit/evals.test.ts`.
-- **Live check in one request.** `GET /api/eval?token=...&scenario=draft|selection|edit` runs one real flow against the real model on in-memory documents and returns pass/fail per check, the document it produced and the tokens used. It answers 404 on production and without the token; only a hash of the token is in the repository. The same checks run locally with `pnpm eval:ai`, and against the scripted model in the unit tests. Calling it resets that server instance's demo data.
+- **Live check in one request.** `GET /api/eval?token=...&scenario=draft|selection|edit|deck` runs one real flow against the real model on in-memory documents and returns pass/fail per check, the document it produced and the tokens used. It answers 404 on production and without the token; only a hash of the token is in the repository. The same checks run locally with `pnpm eval:ai`, and against the scripted model in the unit tests. Calling it resets that server instance's demo data.
 - Demo accounts and seed documents have fixed ids, so a session and a link survive a server restart. The library says plainly that storage is demo storage.
 - The session cookie is signed with `SESSION_SECRET`, or failing that a value derived from the model key, never the built-in default on a host that has a key.
 
